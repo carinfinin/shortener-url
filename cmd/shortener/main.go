@@ -9,7 +9,7 @@ func main() {
 
 	// storage
 	// server
-	s := server.New("8081")
+	s := server.New("8080")
 	fmt.Println("create server struct")
 	err := s.Start()
 
