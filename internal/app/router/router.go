@@ -34,9 +34,10 @@ func (r *Router) createURL(res http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	xmlID := r.Store.AddURL(string(body))
+	newURL := "http;//localhost:8080/" + xmlID
 
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(xmlID))
+	res.Write([]byte(newURL))
 }
 
 func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
