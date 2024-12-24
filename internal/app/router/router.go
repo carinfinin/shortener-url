@@ -34,7 +34,9 @@ func (r *Router) createURL(res http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	xmlID := r.Store.AddURL(string(body))
+	url := strings.TrimSpace(string(body))
+
+	xmlID := r.Store.AddURL(url)
 	newURL := "http://localhost:8080/" + xmlID
 
 	res.WriteHeader(http.StatusCreated)
@@ -47,6 +49,7 @@ func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
 	path := strings.TrimPrefix(req.URL.Path, "/")
 	path = strings.TrimSuffix(path, "/")
 	parts := strings.Split(path, "/")
+
 	if len(parts) != 1 {
 		http.Error(res, "Not found", http.StatusBadRequest)
 		return
@@ -64,9 +67,10 @@ func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
 		}
 
 		res.Header().Set("Location", url)
+
 		res.WriteHeader(http.StatusTemporaryRedirect)
 
-		//http.Redirect(res, req, url, http.StatusMovedPermanently)
+		//http.Redirect(res, req, url, http.StatusTemporaryRedirect)
 	}
 
 }
