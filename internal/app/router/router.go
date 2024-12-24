@@ -4,6 +4,7 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type Router struct {
@@ -42,14 +43,20 @@ func (r *Router) createURL(res http.ResponseWriter, req *http.Request) {
 
 func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
 
-	xmlID := req.PathValue("id")
+	//xmlID := req.PathValue("id")
+	path := strings.TrimPrefix(req.URL.Path, "/")
+	path = strings.TrimSuffix(path, "/")
+	parts := strings.Split(path, "/")
+	if len(parts) != 1 {
+		http.Error(res, "Not found", http.StatusBadRequest)
+		return
+	}
+	xmlID := parts[0]
 
 	if xmlID == "" {
 		//http.NotFound(res, req)
 		http.Error(res, "Not found", http.StatusBadRequest)
 	} else {
-
-		//res.Header().Set()
 
 		url, err := r.Store.GetURL(xmlID)
 		if err != nil {
