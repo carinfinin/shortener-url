@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"io"
 	"net/http"
@@ -19,13 +18,13 @@ func ConfigureRouter(s storage.Repositories) *Router {
 		Store:  s,
 	}
 
-	r.Handle.HandleFunc(http.MethodPost+" /", r.createUrl)
-	r.Handle.HandleFunc(http.MethodGet+" /{id}/", r.getUrl)
+	r.Handle.HandleFunc(http.MethodPost+" /", r.createURL)
+	r.Handle.HandleFunc(http.MethodGet+" /{id}/", r.getURL)
 
 	return &r
 }
 
-func (r *Router) createUrl(res http.ResponseWriter, req *http.Request) {
+func (r *Router) createURL(res http.ResponseWriter, req *http.Request) {
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -34,11 +33,13 @@ func (r *Router) createUrl(res http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	xmlID := r.Store.AddUrl(string(body))
-	fmt.Fprint(res, xmlID)
+	xmlID := r.Store.AddURL(string(body))
+
+	res.WriteHeader(http.StatusCreated)
+	res.Write([]byte(xmlID))
 }
 
-func (r *Router) getUrl(res http.ResponseWriter, req *http.Request) {
+func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
 
 	xmlId := req.PathValue("id")
 
@@ -49,14 +50,15 @@ func (r *Router) getUrl(res http.ResponseWriter, req *http.Request) {
 
 		//res.Header().Set()
 
-		url, err := r.Store.GetUrl(xmlId)
+		url, err := r.Store.GetURL(xmlId)
 		if err != nil {
-			fmt.Println(err)
 			http.NotFound(res, req)
 		}
 
-		http.Redirect(res, req, url, http.StatusMovedPermanently)
-		//res.Write([]byte(url))
+		res.Header().Set("Location", url)
+		res.WriteHeader(http.StatusTemporaryRedirect)
+
+		//http.Redirect(res, req, url, http.StatusMovedPermanently)
 	}
 
 }

@@ -15,16 +15,16 @@ func New() *Store {
 	}
 }
 
-const lengthXmlID int64 = 10
+const lengthXMLID int64 = 10
 
-func (s *Store) AddUrl(url string) string {
-	xmlID := generateXmlID(lengthXmlID)
+func (s *Store) AddURL(url string) string {
+	xmlID := generateXMLID(lengthXMLID)
 	s.store[xmlID] = url
 
 	return xmlID
 }
 
-func (s *Store) GetUrl(xmlID string) (string, error) {
+func (s *Store) GetURL(xmlID string) (string, error) {
 	v, ok := s.store[xmlID]
 	if !ok {
 		return "", fmt.Errorf("ключ не найден")
@@ -32,7 +32,7 @@ func (s *Store) GetUrl(xmlID string) (string, error) {
 	return v, nil
 }
 
-func generateXmlID(l int64) string {
+func generateXMLID(l int64) string {
 	startChar := "a"
 	temp := ""
 	var i int64 = 1

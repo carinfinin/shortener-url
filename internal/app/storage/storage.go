@@ -1,6 +1,6 @@
 package storage
 
 type Repositories interface {
-	AddUrl(url string) string
-	GetUrl(xmlID string) (string, error)
+	AddURL(url string) string
+	GetURL(xmlID string) (string, error)
 }
