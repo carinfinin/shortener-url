@@ -34,7 +34,7 @@ func (r *Router) createURL(res http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	xmlID := r.Store.AddURL(string(body))
-	newURL := "http;//localhost:8080/" + xmlID
+	newURL := "http://localhost:8080/" + xmlID
 
 	res.WriteHeader(http.StatusCreated)
 	res.Write([]byte(newURL))
@@ -42,16 +42,16 @@ func (r *Router) createURL(res http.ResponseWriter, req *http.Request) {
 
 func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
 
-	xmlId := req.PathValue("id")
+	xmlID := req.PathValue("id")
 
-	if xmlId == "" {
+	if xmlID == "" {
 		//http.NotFound(res, req)
 		http.Error(res, "Not found", http.StatusBadRequest)
 	} else {
 
 		//res.Header().Set()
 
-		url, err := r.Store.GetURL(xmlId)
+		url, err := r.Store.GetURL(xmlID)
 		if err != nil {
 			http.NotFound(res, req)
 		}
