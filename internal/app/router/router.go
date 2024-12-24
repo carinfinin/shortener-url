@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -44,8 +45,6 @@ func (r *Router) createURL(res http.ResponseWriter, req *http.Request) {
 }
 
 func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
-
-	//xmlID := req.PathValue("id")
 	path := strings.TrimPrefix(req.URL.Path, "/")
 	path = strings.TrimSuffix(path, "/")
 	parts := strings.Split(path, "/")
@@ -57,19 +56,25 @@ func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
 	xmlID := parts[0]
 
 	if xmlID == "" {
-		//http.NotFound(res, req)
 		http.Error(res, "Not found", http.StatusBadRequest)
-	} else {
-
-		url, err := r.Store.GetURL(xmlID)
-		if err != nil {
-			http.NotFound(res, req)
-		}
-
-		//res.Header().Set("Location", url)
-		//res.WriteHeader(http.StatusTemporaryRedirect)
-
-		http.Redirect(res, req, url, http.StatusTemporaryRedirect)
+		return
 	}
 
+	url, err := r.Store.GetURL(xmlID)
+	if err != nil {
+		http.NotFound(res, req)
+		return
+	}
+
+	log.Printf("Retrieved URL: %s", url) // Логирование URL
+
+	if url == "" {
+		http.NotFound(res, req)
+		return
+	}
+
+	http.Redirect(res, req, url, http.StatusTemporaryRedirect)
+
+	//res.Header().Set("Location", url)
+	//res.WriteHeader(http.StatusTemporaryRedirect)
 }
