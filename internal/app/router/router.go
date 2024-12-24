@@ -66,11 +66,10 @@ func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
 			http.NotFound(res, req)
 		}
 
-		res.Header().Set("Location", url)
+		//res.Header().Set("Location", url)
+		//res.WriteHeader(http.StatusTemporaryRedirect)
 
-		res.WriteHeader(http.StatusTemporaryRedirect)
-
-		//http.Redirect(res, req, url, http.StatusTemporaryRedirect)
+		http.Redirect(res, req, url, http.StatusTemporaryRedirect)
 	}
 
 }
