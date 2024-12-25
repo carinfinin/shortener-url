@@ -3,7 +3,6 @@ package router
 import (
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -21,7 +20,7 @@ func ConfigureRouter(s storage.Repositories) *Router {
 	}
 
 	r.Handle.HandleFunc(http.MethodPost+" /", createURL(r))
-	r.Handle.HandleFunc(http.MethodGet+" /{id}/", getURL(r))
+	r.Handle.HandleFunc(http.MethodGet+" /{id}", getURL(r))
 
 	return &r
 }
@@ -69,18 +68,16 @@ func getURL(r Router) http.HandlerFunc {
 			return
 		}
 
-		log.Printf("Retrieved URL: %s", url) // Логирование URL
+		//log.Printf("Retrieved URL: %s", url)
 
 		if url == "" {
 			http.NotFound(res, req)
 			return
 		}
 
-		http.Redirect(res, req, url, http.StatusTemporaryRedirect)
-
 		//res.Header().Set("Location", url)
 		//res.WriteHeader(http.StatusTemporaryRedirect)
-		return
-	}
+		http.Redirect(res, req, url, http.StatusTemporaryRedirect)
 
+	}
 }
