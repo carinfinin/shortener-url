@@ -61,6 +61,7 @@ func main() {
 		panic(err)
 	}
 	response, err = client.Do(request)
+	defer response.Body.Close()
 	if err != nil {
 		panic(err)
 	}
