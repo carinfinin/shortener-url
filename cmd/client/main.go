@@ -56,14 +56,15 @@ func main() {
 	// и печатаем его
 	fmt.Println(string(body))
 
-	request, err = http.NewRequest(http.MethodGet, string(body), nil)
-	if err != nil {
-		panic(err)
-	}
-	response, err = client.Do(request)
-	defer response.Body.Close()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Статус-код ", response.Status)
+	/*
+		request, err = http.NewRequest(http.MethodGet, string(body), nil)
+		if err != nil {
+			panic(err)
+		}
+		response, err = client.Do(request)
+		defer response.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("Статус-код ", response.Status)*/
 }
