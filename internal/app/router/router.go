@@ -3,7 +3,6 @@ package router
 import (
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -20,62 +19,65 @@ func ConfigureRouter(s storage.Repositories) *Router {
 		Store:  s,
 	}
 
-	r.Handle.HandleFunc(http.MethodPost+" /", r.createURL)
-	r.Handle.HandleFunc(http.MethodGet+" /{id}/", r.getURL)
+	r.Handle.HandleFunc(http.MethodPost+" /", createURL(r))
+	r.Handle.HandleFunc(http.MethodGet+" /{id}", getURL(r))
 
 	return &r
 }
 
-func (r *Router) createURL(res http.ResponseWriter, req *http.Request) {
+func createURL(r Router) http.HandlerFunc {
 
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
+	return func(res http.ResponseWriter, req *http.Request) {
+		body, err := io.ReadAll(req.Body)
+		if err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer req.Body.Close()
+
+		url := strings.TrimSpace(string(body))
+
+		xmlID := r.Store.AddURL(url)
+		newURL := "http://localhost:8080/" + xmlID
+
+		res.WriteHeader(http.StatusCreated)
+		res.Write([]byte(newURL))
 	}
-	defer req.Body.Close()
-
-	url := strings.TrimSpace(string(body))
-
-	xmlID := r.Store.AddURL(url)
-	newURL := "http://localhost:8080/" + xmlID
-
-	res.Header().Set("Content-Type", "text/plain")
-	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(newURL))
 }
 
-func (r *Router) getURL(res http.ResponseWriter, req *http.Request) {
-	path := strings.TrimPrefix(req.URL.Path, "/")
-	path = strings.TrimSuffix(path, "/")
-	parts := strings.Split(path, "/")
+func getURL(r Router) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		path := strings.TrimPrefix(req.URL.Path, "/")
+		path = strings.TrimSuffix(path, "/")
+		parts := strings.Split(path, "/")
 
-	if len(parts) != 1 {
-		http.Error(res, "Not found", http.StatusBadRequest)
-		return
+		if len(parts) != 1 {
+			http.Error(res, "Not found", http.StatusBadRequest)
+			return
+		}
+		xmlID := parts[0]
+
+		if xmlID == "" {
+			http.Error(res, "Not found", http.StatusBadRequest)
+			return
+		}
+
+		url, err := r.Store.GetURL(xmlID)
+		if err != nil {
+			http.NotFound(res, req)
+			return
+		}
+
+		//log.Printf("Retrieved URL: %s", url)
+
+		if url == "" {
+			http.NotFound(res, req)
+			return
+		}
+
+		//res.Header().Set("Location", url)
+		//res.WriteHeader(http.StatusTemporaryRedirect)
+		http.Redirect(res, req, url, http.StatusTemporaryRedirect)
+
 	}
-	xmlID := parts[0]
-
-	if xmlID == "" {
-		http.Error(res, "Not found", http.StatusBadRequest)
-		return
-	}
-
-	url, err := r.Store.GetURL(xmlID)
-	if err != nil {
-		http.NotFound(res, req)
-		return
-	}
-
-	log.Printf("Retrieved URL: %s", url) // Логирование URL
-
-	if url == "" {
-		http.NotFound(res, req)
-		return
-	}
-
-	http.Redirect(res, req, url, http.StatusTemporaryRedirect)
-
-	//res.Header().Set("Location", url)
-	//res.WriteHeader(http.StatusTemporaryRedirect)
 }
