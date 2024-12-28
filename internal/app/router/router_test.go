@@ -42,7 +42,8 @@ func TestCreateURL(t *testing.T) {
 			r := ConfigureRouter(s)
 			w := httptest.NewRecorder()
 
-			r.createURL(w, request)
+			h := CreateURL(*r)
+			h(w, request)
 
 			result := w.Result()
 
@@ -95,7 +96,8 @@ func TestGetURL(t *testing.T) {
 			r := ConfigureRouter(s)
 			w := httptest.NewRecorder()
 
-			r.getURL(w, request)
+			h := GetURL(*r)
+			h(w, request)
 
 			result := w.Result()
 

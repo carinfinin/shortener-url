@@ -19,13 +19,13 @@ func ConfigureRouter(s storage.Repositories) *Router {
 		Store:  s,
 	}
 
-	r.Handle.HandleFunc(http.MethodPost+" /", createURL(r))
-	r.Handle.HandleFunc(http.MethodGet+" /{id}", getURL(r))
+	r.Handle.HandleFunc(http.MethodPost+" /", CreateURL(r))
+	r.Handle.HandleFunc(http.MethodGet+" /{id}", GetURL(r))
 
 	return &r
 }
 
-func createURL(r Router) http.HandlerFunc {
+func CreateURL(r Router) http.HandlerFunc {
 
 	return func(res http.ResponseWriter, req *http.Request) {
 		body, err := io.ReadAll(req.Body)
@@ -45,7 +45,7 @@ func createURL(r Router) http.HandlerFunc {
 	}
 }
 
-func getURL(r Router) http.HandlerFunc {
+func GetURL(r Router) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		path := strings.TrimPrefix(req.URL.Path, "/")
 		path = strings.TrimSuffix(path, "/")
