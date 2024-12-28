@@ -50,12 +50,12 @@ func TestCreateURL(t *testing.T) {
 			assert.Equal(t, test.want.statusCode, result.StatusCode)
 			assert.Equal(t, test.want.contentType, result.Header.Get("Content-Type"))
 
-			newUrl, err := io.ReadAll(result.Body)
+			newURL, err := io.ReadAll(result.Body)
 			require.NoError(t, err)
 			err = result.Body.Close()
 			require.NoError(t, err)
 
-			assert.NotNil(t, newUrl)
+			assert.NotNil(t, newURL)
 
 			fmt.Println("test create URL")
 		})
@@ -105,13 +105,13 @@ func TestGetURL(t *testing.T) {
 
 			assert.Equal(t, test.data, result.Header.Get("Location"))
 
-			newUrl, err := io.ReadAll(result.Body)
+			newURL, err := io.ReadAll(result.Body)
 			require.NoError(t, err)
 			err = result.Body.Close()
 			require.NoError(t, err)
 
-			fmt.Println(string(newUrl))
-			assert.NotNil(t, newUrl)
+			fmt.Println(string(newURL))
+			assert.NotNil(t, newURL)
 
 			fmt.Println("Location", result.Header.Get("Location"))
 		})

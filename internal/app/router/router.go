@@ -40,6 +40,7 @@ func CreateURL(r Router) http.HandlerFunc {
 		xmlID := r.Store.AddURL(url)
 		newURL := "http://localhost:8080/" + xmlID
 
+		res.Header().Set("Content-Type", "text/plain")
 		res.WriteHeader(http.StatusCreated)
 		res.Write([]byte(newURL))
 	}
