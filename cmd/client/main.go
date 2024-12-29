@@ -65,8 +65,6 @@ func main() {
 		panic(err)
 	}
 	defer response.Body.Close()
-	if err != nil {
-		panic(err)
-	}
+
 	fmt.Println("Статус-код ", response.Status)
 }
