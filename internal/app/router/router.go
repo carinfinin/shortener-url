@@ -2,31 +2,31 @@ package router
 
 import (
 	"github.com/carinfinin/shortener-url/internal/app/storage"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"strings"
 )
 
 type Router struct {
-	Handle *http.ServeMux
+	Handle *chi.Mux
 	Store  storage.Repositories
 }
 
 func ConfigureRouter(s storage.Repositories) *Router {
 
 	r := Router{
-		Handle: http.NewServeMux(),
+		Handle: chi.NewRouter(),
 		Store:  s,
 	}
 
-	r.Handle.HandleFunc(http.MethodPost+" /", CreateURL(r))
-	r.Handle.HandleFunc(http.MethodGet+" /{id}", GetURL(r))
+	r.Handle.Post("/", CreateURL(r))
+	r.Handle.Get("/{id}", GetURL(r))
 
 	return &r
 }
 
 func CreateURL(r Router) http.HandlerFunc {
-
 	return func(res http.ResponseWriter, req *http.Request) {
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
@@ -48,37 +48,30 @@ func CreateURL(r Router) http.HandlerFunc {
 
 func GetURL(r Router) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
+
+		//id := chi.URLParam(req, "id")
+
 		path := strings.TrimPrefix(req.URL.Path, "/")
 		path = strings.TrimSuffix(path, "/")
 		parts := strings.Split(path, "/")
+		id := parts[0]
 
-		if len(parts) != 1 {
-			http.Error(res, "Not found", http.StatusBadRequest)
-			return
-		}
-		xmlID := parts[0]
-
-		if xmlID == "" {
+		if id == "" {
 			http.Error(res, "Not found", http.StatusBadRequest)
 			return
 		}
 
-		url, err := r.Store.GetURL(xmlID)
+		url, err := r.Store.GetURL(id)
 		if err != nil {
 			http.NotFound(res, req)
 			return
 		}
-
-		//log.Printf("Retrieved URL: %s", url)
 
 		if url == "" {
 			http.NotFound(res, req)
 			return
 		}
 
-		//res.Header().Set("Location", url)
-		//res.WriteHeader(http.StatusTemporaryRedirect)
 		http.Redirect(res, req, url, http.StatusTemporaryRedirect)
-
 	}
 }

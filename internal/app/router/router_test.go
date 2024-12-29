@@ -16,7 +16,6 @@ func TestCreateURL(t *testing.T) {
 	type want struct {
 		contentType string
 		statusCode  int
-		Response    []byte
 	}
 	tests := []struct {
 		name    string
@@ -28,7 +27,6 @@ func TestCreateURL(t *testing.T) {
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
-				Response:    []byte("ee"),
 			},
 			request: "/",
 		},
@@ -66,7 +64,6 @@ func TestGetURL(t *testing.T) {
 	type want struct {
 		contentType string
 		statusCode  int
-		Response    []byte
 	}
 	tests := []struct {
 		name    string
@@ -76,10 +73,9 @@ func TestGetURL(t *testing.T) {
 	}{
 		{
 			name: "simple test #1",
-			data: "https://google.ru",
+			data: "https://www.google.com",
 			want: want{
 				statusCode: 307,
-				Response:   []byte("ee"),
 			},
 			request: "/",
 		},
@@ -100,6 +96,7 @@ func TestGetURL(t *testing.T) {
 			h(w, request)
 
 			result := w.Result()
+			fmt.Println(result)
 
 			assert.Equal(t, test.want.statusCode, result.StatusCode)
 
