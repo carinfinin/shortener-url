@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 	"io"
@@ -11,13 +12,15 @@ import (
 type Router struct {
 	Handle *chi.Mux
 	Store  storage.Repositories
+	Config *config.Config
 }
 
-func ConfigureRouter(s storage.Repositories) *Router {
+func ConfigureRouter(s storage.Repositories, config *config.Config) *Router {
 
 	r := Router{
 		Handle: chi.NewRouter(),
 		Store:  s,
+		Config: config,
 	}
 
 	r.Handle.Post("/", CreateURL(r))
@@ -38,7 +41,7 @@ func CreateURL(r Router) http.HandlerFunc {
 		url := strings.TrimSpace(string(body))
 
 		xmlID := r.Store.AddURL(url)
-		newURL := "http://localhost:8080/" + xmlID
+		newURL := r.Config.URL + xmlID
 
 		res.Header().Set("Content-Type", "text/plain")
 		res.WriteHeader(http.StatusCreated)

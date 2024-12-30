@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/router"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
@@ -13,13 +14,13 @@ type Server struct {
 	Router *router.Router
 }
 
-func New(port string) *Server {
+func New(config *config.Config) *Server {
 	s := store.New()
 
 	return &Server{
-		Port:   ":" + port,
+		Port:   config.Addr,
 		Store:  s,
-		Router: router.ConfigureRouter(s),
+		Router: router.ConfigureRouter(s, config),
 	}
 }
 

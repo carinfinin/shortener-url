@@ -1,12 +1,15 @@
 package main
 
 import (
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/server"
 )
 
 func main() {
 
-	s := server.New("8080")
+	config := config.New()
+
+	s := server.New(config)
 	err := s.Start()
 
 	if err != nil {

@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,9 +36,10 @@ func TestCreateURL(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodPost, test.request, strings.NewReader("https://yandex.ru"))
+			config := config.New()
 
 			s := store.New()
-			r := ConfigureRouter(s)
+			r := ConfigureRouter(s, config)
 			w := httptest.NewRecorder()
 
 			h := CreateURL(*r)
@@ -88,8 +90,9 @@ func TestGetURL(t *testing.T) {
 			xmlID := s.AddURL(test.data)
 
 			request := httptest.NewRequest(http.MethodGet, test.request+xmlID, nil)
+			config := config.New()
 
-			r := ConfigureRouter(s)
+			r := ConfigureRouter(s, config)
 			w := httptest.NewRecorder()
 
 			h := GetURL(*r)
