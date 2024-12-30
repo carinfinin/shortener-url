@@ -41,7 +41,7 @@ func CreateURL(r Router) http.HandlerFunc {
 		url := strings.TrimSpace(string(body))
 
 		xmlID := r.Store.AddURL(url)
-		newURL := r.Config.URL + xmlID
+		newURL := r.Config.URL + "/" + xmlID
 
 		res.Header().Set("Content-Type", "text/plain")
 		res.WriteHeader(http.StatusCreated)
