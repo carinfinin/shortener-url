@@ -20,7 +20,7 @@ func New(config *config.Config) *Server {
 	return &Server{
 		Port:   config.Addr,
 		Store:  s,
-		Router: router.ConfigureRouter(s, config),
+		Router: router.ConfigureRouter(s, config.URL),
 	}
 }
 

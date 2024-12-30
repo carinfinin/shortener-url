@@ -2,7 +2,6 @@ package router
 
 import (
 	"fmt"
-	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +21,7 @@ func TestCreateURL(t *testing.T) {
 		name    string
 		request string
 		want    want
+		url     string
 	}{
 		{
 			name: "simple test #1",
@@ -29,6 +29,7 @@ func TestCreateURL(t *testing.T) {
 				contentType: "text/plain",
 				statusCode:  201,
 			},
+			url:     "http://localhost:8080",
 			request: "/",
 		},
 	}
@@ -36,10 +37,9 @@ func TestCreateURL(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodPost, test.request, strings.NewReader("https://yandex.ru"))
-			config := config.New()
 
 			s := store.New()
-			r := ConfigureRouter(s, config)
+			r := ConfigureRouter(s, test.url)
 			w := httptest.NewRecorder()
 
 			h := CreateURL(*r)
@@ -72,6 +72,7 @@ func TestGetURL(t *testing.T) {
 		data    string
 		request string
 		want    want
+		url     string
 	}{
 		{
 			name: "simple test #1",
@@ -79,6 +80,7 @@ func TestGetURL(t *testing.T) {
 			want: want{
 				statusCode: 307,
 			},
+			url:     "http://localhost:8080",
 			request: "/",
 		},
 	}
@@ -90,9 +92,8 @@ func TestGetURL(t *testing.T) {
 			xmlID := s.AddURL(test.data)
 
 			request := httptest.NewRequest(http.MethodGet, test.request+xmlID, nil)
-			config := config.New()
 
-			r := ConfigureRouter(s, config)
+			r := ConfigureRouter(s, test.url)
 			w := httptest.NewRecorder()
 
 			h := GetURL(*r)
