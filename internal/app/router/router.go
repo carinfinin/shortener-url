@@ -1,6 +1,7 @@
 package router
 
 import (
+	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 	"io"
@@ -21,6 +22,8 @@ func ConfigureRouter(s storage.Repositories, url string) *Router {
 		Store:  s,
 		URL:    url,
 	}
+
+	r.Handle.Use(middleware2.Logging)
 
 	r.Handle.Post("/", CreateURL(r))
 	r.Handle.Get("/{id}", GetURL(r))
