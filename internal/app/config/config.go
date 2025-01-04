@@ -21,7 +21,7 @@ func New() *Config {
 		config.Addr = envServerAddr
 	}
 	if envBaseURL := os.Getenv("BASE_URL"); envBaseURL != "" {
-		config.Addr = envBaseURL
+		config.URL = envBaseURL
 	}
 	return &config
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/server"
 )
@@ -13,6 +14,7 @@ func main() {
 	err := s.Start()
 
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 }
