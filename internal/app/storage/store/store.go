@@ -3,6 +3,7 @@ package store
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 type Store struct {
@@ -17,8 +18,17 @@ func New() *Store {
 
 const lengthXMLID int64 = 10
 
+func (s *Store) generateAndExistXMLID(length int64) string {
+	xmlID := generateXMLID(length)
+	if _, ok := s.store[xmlID]; ok {
+		return s.generateAndExistXMLID(length + 1)
+	} else {
+		return xmlID
+	}
+}
+
 func (s *Store) AddURL(url string) string {
-	xmlID := generateXMLID(lengthXMLID)
+	xmlID := s.generateAndExistXMLID(lengthXMLID)
 	s.store[xmlID] = url
 
 	return xmlID
@@ -33,20 +43,15 @@ func (s *Store) GetURL(xmlID string) (string, error) {
 }
 
 func generateXMLID(l int64) string {
-	startChar := "a"
-	temp := ""
-	var i int64 = 1
-	for {
-		myRand := random(0, 26)
-		newChar := string(startChar[0] + byte(myRand))
-		temp = temp + newChar
-		if i == l {
-			break
-		}
-		i++
+
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	letters := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+
+	b := make([]byte, l)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
 	}
-	return temp
-}
-func random(min, max int) int {
-	return rand.Intn(max-min) + min
+
+	return string(b)
 }

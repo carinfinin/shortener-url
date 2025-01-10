@@ -54,10 +54,7 @@ func CreateURL(r Router) http.HandlerFunc {
 func GetURL(r Router) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 
-		//id := chi.URLParam(req, "id")
-
-		path := strings.TrimPrefix(req.URL.Path, "/")
-		path = strings.TrimSuffix(path, "/")
+		path := strings.Trim(req.URL.Path, "/")
 		parts := strings.Split(path, "/")
 		id := parts[0]
 
