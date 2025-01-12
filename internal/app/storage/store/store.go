@@ -3,16 +3,19 @@ package store
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 )
 
 type Store struct {
 	store map[string]string
+	mu    sync.Mutex
 }
 
 func New() *Store {
 	return &Store{
 		store: make(map[string]string),
+		mu:    sync.Mutex{},
 	}
 }
 
@@ -28,9 +31,10 @@ func (s *Store) generateAndExistXMLID(length int64) string {
 }
 
 func (s *Store) AddURL(url string) string {
+	s.mu.Lock()
 	xmlID := s.generateAndExistXMLID(lengthXMLID)
 	s.store[xmlID] = url
-
+	s.mu.Unlock()
 	return xmlID
 }
 
