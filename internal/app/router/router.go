@@ -23,7 +23,8 @@ func ConfigureRouter(s storage.Repositories, url string) *Router {
 		URL:    url,
 	}
 
-	r.Handle.Use(middleware2.Logging)
+	r.Handle.Use(middleware2.RequestLogger)
+	r.Handle.Use(middleware2.ResponseLogger)
 
 	r.Handle.Post("/", CreateURL(r))
 	r.Handle.Get("/{id}", GetURL(r))
