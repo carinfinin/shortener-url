@@ -154,18 +154,18 @@ func TestJSONHandle(t *testing.T) {
 			r := ConfigureRouter(s, test.url)
 			hf := JSONHandle(*r)
 			hf(w, request)
-			dataResult := w.Result()
-
-			assert.Equal(t, test.statusCode, dataResult.StatusCode)
+			result := w.Result()
+			assert.Equal(t, test.statusCode, result.StatusCode)
 
 			var res models.Response
-			decoder := json.NewDecoder(dataResult.Body)
+			decoder := json.NewDecoder(result.Body)
 
 			err = decoder.Decode(&res)
 
 			assert.NoError(t, err)
 			assert.NotNil(t, res.Result)
-
+			err = result.Body.Close()
+			assert.NoError(t, err)
 		})
 	}
 }
