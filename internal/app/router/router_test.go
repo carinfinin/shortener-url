@@ -1,7 +1,10 @@
 package router
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -115,6 +118,58 @@ func TestGetURL(t *testing.T) {
 			assert.NotNil(t, newURL)
 
 			fmt.Println("Location", result.Header.Get("Location"))
+		})
+	}
+}
+
+func TestJSONHandle(t *testing.T) {
+	tests := []struct {
+		name       string
+		data       string
+		request    string
+		url        string
+		statusCode int
+	}{
+		{
+			name:       "simple test #1",
+			data:       "{\n  \"url\": \"https://practicum.yandex.ru\"\n}",
+			request:    "/api/shorten",
+			url:        "http://localhost:8080",
+			statusCode: 201,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			buf := bytes.NewBuffer([]byte(test.data))
+			var req models.Request
+
+			err := json.Unmarshal([]byte(test.data), &req)
+			assert.NoError(t, err)
+			fmt.Println("----------------")
+			fmt.Println(req.Url)
+			fmt.Println("----------------")
+			request := httptest.NewRequest(http.MethodPost, test.request, buf)
+			w := httptest.NewRecorder()
+			s := store.New()
+			r := ConfigureRouter(s, test.url)
+			hf := JSONHandle(*r)
+			hf(w, request)
+			result := w.Result()
+
+			fmt.Println(result.Body)
+
+			assert.Equal(t, test.statusCode, result.StatusCode)
+
+			var res models.Response
+			decoder := json.NewDecoder(result.Body)
+
+			err = decoder.Decode(&res)
+
+			assert.NoError(t, err)
+			assert.NotNil(t, res.Result)
+
 		})
 	}
 }

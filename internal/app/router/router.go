@@ -1,7 +1,10 @@
 package router
 
 import (
+	"encoding/json"
+	"github.com/carinfinin/shortener-url/internal/app/logger"
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 	"io"
@@ -26,6 +29,7 @@ func ConfigureRouter(s storage.Repositories, url string) *Router {
 	r.Handle.Use(middleware2.RequestLogger)
 	r.Handle.Use(middleware2.ResponseLogger)
 
+	r.Handle.Post("/api/shorten", JSONHandle(r))
 	r.Handle.Post("/", CreateURL(r))
 	r.Handle.Get("/{id}", GetURL(r))
 
@@ -76,5 +80,46 @@ func GetURL(r Router) http.HandlerFunc {
 		}
 
 		http.Redirect(res, req, url, http.StatusTemporaryRedirect)
+	}
+}
+
+func JSONHandle(r Router) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method == http.MethodPost {
+
+			logger.Log.Info("start handle JSON")
+
+			var req models.Request
+			decoder := json.NewDecoder(request.Body)
+			err := decoder.Decode(&req)
+			if err != nil {
+				logger.Log.Error("Decode error", err)
+				http.Error(writer, "bad request", http.StatusBadRequest)
+				return
+			}
+			req.Url = strings.TrimSpace(req.Url)
+
+			xmlID := r.Store.AddURL(req.Url)
+
+			var res models.Response
+
+			res.Result = r.URL + "/" + xmlID
+
+			encoder := json.NewEncoder(writer)
+
+			writer.Header().Set("Content-Type", "application/json")
+			writer.WriteHeader(http.StatusCreated)
+
+			if err := encoder.Encode(res); err != nil {
+				logger.Log.Error("Encode error", err)
+				http.Error(writer, "bad request", http.StatusBadRequest)
+				return
+			}
+
+		} else {
+			http.NotFound(writer, request)
+			return
+		}
+
 	}
 }
