@@ -97,9 +97,9 @@ func JSONHandle(r Router) http.HandlerFunc {
 				http.Error(writer, "bad request", http.StatusBadRequest)
 				return
 			}
-			req.Url = strings.TrimSpace(req.Url)
+			req.URL = strings.TrimSpace(req.URL)
 
-			xmlID := r.Store.AddURL(req.Url)
+			xmlID := r.Store.AddURL(req.URL)
 
 			var res models.Response
 
