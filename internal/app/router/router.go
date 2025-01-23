@@ -26,6 +26,7 @@ func ConfigureRouter(s storage.Repositories, url string) *Router {
 		URL:    url,
 	}
 
+	r.Handle.Use(middleware2.CompressGzip)
 	r.Handle.Use(middleware2.RequestLogger)
 	r.Handle.Use(middleware2.ResponseLogger)
 
