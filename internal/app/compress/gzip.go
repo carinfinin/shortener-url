@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type CompressWriter struct {
@@ -22,7 +23,13 @@ func (c *CompressWriter) Header() http.Header {
 	return c.w.Header()
 }
 func (c *CompressWriter) Write(b []byte) (int, error) {
-	return c.gz.Write(b)
+
+	content := c.w.Header().Get("Content-Type")
+	if strings.Contains("application/json;text/html", content) {
+		return c.gz.Write(b)
+	} else {
+		return c.w.Write(b)
+	}
 
 }
 
