@@ -22,7 +22,8 @@ func (c *CompressWriter) Header() http.Header {
 	return c.w.Header()
 }
 func (c *CompressWriter) Write(b []byte) (int, error) {
-	return c.w.Write(b)
+	return c.gz.Write(b)
+
 }
 
 func (c *CompressWriter) WriteHeader(statusCode int) {
@@ -45,7 +46,6 @@ func NewCompressReader(r io.ReadCloser) (*CompressReader, error) {
 	gz, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
-
 	}
 	return &CompressReader{
 		r:  r,

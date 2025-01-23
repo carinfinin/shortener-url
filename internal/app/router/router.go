@@ -25,10 +25,9 @@ func ConfigureRouter(s storage.Repositories, url string) *Router {
 		Store:  s,
 		URL:    url,
 	}
-
+	r.Handle.Use(middleware2.CompressGzip)
 	r.Handle.Use(middleware2.RequestLogger)
 	r.Handle.Use(middleware2.ResponseLogger)
-	r.Handle.Use(middleware2.CompressGzip)
 
 	r.Handle.Post("/api/shorten", JSONHandle(r))
 	r.Handle.Post("/", CreateURL(r))

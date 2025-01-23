@@ -24,6 +24,8 @@ func CompressGzip(h http.Handler) http.Handler {
 			logger.Log.Info("Content-Encoding == gzip")
 
 			cr, err := compress.NewCompressReader(request.Body)
+			logger.Log.Info(cr)
+
 			if err != nil {
 				logger.Log.Info("error newCompressReader", err)
 				writer.WriteHeader(http.StatusInternalServerError)
