@@ -1,83 +1,31 @@
 package middleware
 
 import (
-	"compress/gzip"
-	"io"
+	"github.com/carinfinin/shortener-url/internal/app/compress"
+	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"net/http"
 	"strings"
 )
-
-type compressWriter struct {
-	w  http.ResponseWriter
-	gz *gzip.Writer
-}
-
-func newCompressWriter(w http.ResponseWriter) *compressWriter {
-	return &compressWriter{
-		w:  w,
-		gz: gzip.NewWriter(w),
-	}
-}
-
-func (c *compressWriter) Header() http.Header {
-	return c.w.Header()
-}
-func (c *compressWriter) Write(b []byte) (int, error) {
-	return c.w.Write(b)
-}
-
-func (c *compressWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
-		c.w.Header().Set("Content-Encoding", "gzip")
-	}
-	c.w.WriteHeader(statusCode)
-}
-
-func (c *compressWriter) Close() error {
-	return c.gz.Close()
-}
-
-type compressReader struct {
-	r  io.ReadCloser
-	zr *gzip.Reader
-}
-
-func newCompressReader(r io.ReadCloser) (*compressReader, error) {
-	gz, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, err
-
-	}
-	return &compressReader{
-		r:  r,
-		zr: gz,
-	}, nil
-}
-func (c *compressReader) Read(p []byte) (n int, err error) {
-	return c.zr.Read(p)
-}
-
-func (c *compressReader) Close() error {
-	if err := c.r.Close(); err != nil {
-		return err
-	}
-	return c.zr.Close()
-}
 
 func CompressGzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 
 		w := writer
 
-		if strings.Contains(request.Header.Get("Content-Encoding"), "gzip") {
-			cw := newCompressWriter(writer)
+		if strings.Contains(request.Header.Get("Accept-Encoding"), "gzip") {
+			logger.Log.Info("Accept-Encoding == gzip")
+
+			cw := compress.NewCompressWriter(writer)
 			w = cw
 			defer cw.Close()
 		}
 
-		if strings.Contains(request.Header.Get("Accept-Encoding"), "gzip") {
-			cr, err := newCompressReader(request.Body)
+		if strings.Contains(request.Header.Get("Content-Encoding"), "gzip") {
+			logger.Log.Info("Content-Encoding == gzip")
+
+			cr, err := compress.NewCompressReader(request.Body)
 			if err != nil {
+				logger.Log.Info("error newCompressReader", err)
 				writer.WriteHeader(http.StatusInternalServerError)
 				return
 			}
