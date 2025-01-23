@@ -16,8 +16,9 @@ func CompressGzip(h http.Handler) http.Handler {
 			logger.Log.Info("Accept-Encoding == gzip")
 
 			cw := compress.NewCompressWriter(writer)
-			w = cw
 			defer cw.Close()
+			w = cw
+			w.Header().Set("Content-Encoding", "gzip")
 		}
 
 		if strings.Contains(request.Header.Get("Content-Encoding"), "gzip") {
