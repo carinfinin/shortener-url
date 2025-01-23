@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"compress/gzip"
-	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"io"
 	"net/http"
 	"strings"
@@ -68,23 +67,17 @@ func (c *compressReader) Close() error {
 func CompressGzip(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 
-		logger.Log.Info("start CompressGzip")
-
 		w := writer
 
 		if strings.Contains(request.Header.Get("Content-Encoding"), "gzip") {
-			logger.Log.Info("Content-Encoding == gzip")
-
 			cw := newCompressWriter(writer)
 			w = cw
 			defer cw.Close()
 		}
 
 		if strings.Contains(request.Header.Get("Accept-Encoding"), "gzip") {
-			logger.Log.Info("Accept-Encoding == gzip")
 			cr, err := newCompressReader(request.Body)
 			if err != nil {
-				logger.Log.Info("error newCompressReader", err)
 				writer.WriteHeader(http.StatusInternalServerError)
 				return
 			}
