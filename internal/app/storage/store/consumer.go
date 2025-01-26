@@ -21,8 +21,8 @@ func NewConsumer(path string) (*Consumer, error) {
 		scanner: bufio.NewScanner(file),
 	}, nil
 }
-func (p *Consumer) Close() error {
-	return p.file.Close()
+func (c *Consumer) Close() error {
+	return c.file.Close()
 }
 
 func (c *Consumer) ReadAll() (map[string]string, error) {
