@@ -47,7 +47,12 @@ func CreateURL(r Router) http.HandlerFunc {
 
 		url := strings.TrimSpace(string(body))
 
-		xmlID := r.Store.AddURL(url)
+		xmlID, err := r.Store.AddURL(url)
+		if err != nil {
+			logger.Log.Error("CreateURL", err)
+			http.Error(res, "CreateURL", http.StatusInternalServerError)
+			return
+		}
 		newURL := r.URL + "/" + xmlID
 
 		res.Header().Set("Content-Type", "text/plain")
@@ -99,7 +104,12 @@ func JSONHandle(r Router) http.HandlerFunc {
 			}
 			req.URL = strings.TrimSpace(req.URL)
 
-			xmlID := r.Store.AddURL(req.URL)
+			xmlID, err := r.Store.AddURL(req.URL)
+			if err != nil {
+				logger.Log.Error("JSONHandle", err)
+				http.Error(writer, "error add url", http.StatusInternalServerError)
+				return
+			}
 
 			var res models.Response
 

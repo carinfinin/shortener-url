@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"math/rand"
 	"sync"
 	"time"
@@ -10,13 +11,35 @@ import (
 type Store struct {
 	store map[string]string
 	mu    sync.Mutex
+	path  string
 }
 
-func New() *Store {
-	return &Store{
-		store: make(map[string]string),
-		mu:    sync.Mutex{},
+type Line struct {
+	URL string `json:"url"`
+	ID  string `json:"id"`
+}
+
+func New(path string) (*Store, error) {
+	logger.Log.Info("stare starting")
+
+	consumer, err := NewConsumer(path)
+	if err != nil {
+		return nil, err
 	}
+	defer consumer.Close()
+
+	data, err := consumer.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Log.Info("stare started")
+
+	return &Store{
+		store: data,
+		mu:    sync.Mutex{},
+		path:  path,
+	}, nil
 }
 
 const lengthXMLID int64 = 10
@@ -30,12 +53,25 @@ func (s *Store) generateAndExistXMLID(length int64) string {
 	}
 }
 
-func (s *Store) AddURL(url string) string {
+func (s *Store) AddURL(url string) (string, error) {
 	s.mu.Lock()
+
+	producer, err := NewProducer(s.path)
+	if err != nil {
+		return "", err
+	}
+	defer producer.Close()
 	xmlID := s.generateAndExistXMLID(lengthXMLID)
+	line := Line{ID: xmlID, URL: url}
+
+	err = producer.WriteLine(&line)
+	if err != nil {
+		return "", err
+	}
 	s.store[xmlID] = url
+
 	s.mu.Unlock()
-	return xmlID
+	return xmlID, nil
 }
 
 func (s *Store) GetURL(xmlID string) (string, error) {

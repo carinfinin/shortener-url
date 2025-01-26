@@ -17,7 +17,11 @@ func main() {
 	}
 	logger.Log.Info("server starting")
 
-	s := server.New(config)
+	s, err := server.New(config)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
 	err = s.Start()
 	if err != nil {
 		fmt.Println(err)
