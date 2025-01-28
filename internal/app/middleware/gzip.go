@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func CompressGzip(h http.Handler) http.Handler {
+func CompressGzipWriter(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 
 		w := writer
@@ -22,6 +22,12 @@ func CompressGzip(h http.Handler) http.Handler {
 			w.Header().Set("Content-Encoding", "gzip")
 		}
 
+		h.ServeHTTP(w, request)
+	})
+}
+
+func CompressGzipReader(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if strings.Contains(request.Header.Get("Content-Encoding"), "gzip") {
 			logger.Log.Info("Content-Encoding == gzip")
 			logger.Log.Info(request.Header)
@@ -38,6 +44,6 @@ func CompressGzip(h http.Handler) http.Handler {
 			defer cr.Close()
 		}
 
-		h.ServeHTTP(w, request)
+		h.ServeHTTP(writer, request)
 	})
 }

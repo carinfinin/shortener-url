@@ -13,7 +13,7 @@ type Store struct {
 }
 
 func New() (*Store, error) {
-	logger.Log.Info("stare starting")
+	logger.Log.Info("store starting")
 
 	return &Store{
 		store: map[string]string{},

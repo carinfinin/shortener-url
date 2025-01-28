@@ -25,7 +25,8 @@ func ConfigureRouter(s storage.Repositories, url string) *Router {
 		Store:  s,
 		URL:    url,
 	}
-	r.Handle.Use(middleware2.CompressGzip)
+	r.Handle.Use(middleware2.CompressGzipWriter)
+	r.Handle.Use(middleware2.CompressGzipReader)
 	r.Handle.Use(middleware2.RequestLogger)
 	r.Handle.Use(middleware2.ResponseLogger)
 
@@ -90,44 +91,38 @@ func GetURL(r Router) http.HandlerFunc {
 
 func JSONHandle(r Router) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		if request.Method == http.MethodPost {
 
-			logger.Log.Info("start handle JSON")
+		logger.Log.Info("start handle JSON")
 
-			var req models.Request
-			decoder := json.NewDecoder(request.Body)
-			err := decoder.Decode(&req)
-			if err != nil {
-				logger.Log.Error("Decode error", err)
-				http.Error(writer, "bad request", http.StatusBadRequest)
-				return
-			}
-			req.URL = strings.TrimSpace(req.URL)
+		var req models.Request
+		decoder := json.NewDecoder(request.Body)
+		err := decoder.Decode(&req)
+		if err != nil {
+			logger.Log.Error("Decode error", err)
+			http.Error(writer, "bad request", http.StatusBadRequest)
+			return
+		}
+		req.URL = strings.TrimSpace(req.URL)
 
-			xmlID, err := r.Store.AddURL(req.URL)
-			if err != nil {
-				logger.Log.Error("JSONHandle", err)
-				http.Error(writer, "error add url", http.StatusInternalServerError)
-				return
-			}
+		xmlID, err := r.Store.AddURL(req.URL)
+		if err != nil {
+			logger.Log.Error("JSONHandle", err)
+			http.Error(writer, "error add url", http.StatusInternalServerError)
+			return
+		}
 
-			var res models.Response
+		var res models.Response
 
-			res.Result = r.URL + "/" + xmlID
+		res.Result = r.URL + "/" + xmlID
 
-			encoder := json.NewEncoder(writer)
+		encoder := json.NewEncoder(writer)
 
-			writer.Header().Set("Content-Type", "application/json")
-			writer.WriteHeader(http.StatusCreated)
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusCreated)
 
-			if err := encoder.Encode(res); err != nil {
-				logger.Log.Error("Encode error", err)
-				http.Error(writer, "bad request", http.StatusBadRequest)
-				return
-			}
-
-		} else {
-			http.NotFound(writer, request)
+		if err := encoder.Encode(res); err != nil {
+			logger.Log.Error("Encode error", err)
+			http.Error(writer, "bad request", http.StatusBadRequest)
 			return
 		}
 

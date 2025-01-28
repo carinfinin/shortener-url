@@ -3,7 +3,6 @@ package middleware
 import (
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"github.com/sirupsen/logrus"
-	"log"
 	"net/http"
 	"time"
 )
@@ -28,14 +27,6 @@ func (r *loggingResponseWriter) Write(data []byte) (int, error) {
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
-}
-
-func Logging(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		start := time.Now()
-		next.ServeHTTP(w, req)
-		log.Printf("%s %s %s", req.Method, req.RequestURI, time.Since(start))
-	})
 }
 
 func RequestLogger(next http.Handler) http.Handler {
