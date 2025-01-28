@@ -41,7 +41,7 @@ func TestCreateURL(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodPost, test.request, strings.NewReader("https://yandex.ru"))
 
-			s, err := store.New("test.json")
+			s, err := store.New()
 			require.NoError(t, err)
 			r := ConfigureRouter(s, test.url)
 			w := httptest.NewRecorder()
@@ -91,7 +91,7 @@ func TestGetURL(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			s, err := store.New("test.json")
+			s, err := store.New()
 			require.NoError(t, err)
 
 			xmlID, err := s.AddURL(test.data)
@@ -153,7 +153,7 @@ func TestJSONHandle(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodPost, test.request, buf)
 			w := httptest.NewRecorder()
-			s, err := store.New("test.json")
+			s, err := store.New()
 			require.NoError(t, err)
 
 			r := ConfigureRouter(s, test.url)
