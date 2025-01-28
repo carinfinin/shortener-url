@@ -1,14 +1,13 @@
-package store
+package storefile
 
 import (
-	"bufio"
 	"encoding/json"
 	"os"
 )
 
 type Producer struct {
-	file   *os.File
-	writer *bufio.Writer
+	file    *os.File
+	encoder *json.Encoder
 }
 
 func NewProducer(path string) (*Producer, error) {
@@ -17,26 +16,18 @@ func NewProducer(path string) (*Producer, error) {
 		return nil, err
 	}
 	return &Producer{
-		file:   file,
-		writer: bufio.NewWriter(file),
+		file:    file,
+		encoder: json.NewEncoder(file),
 	}, nil
 }
 func (p *Producer) WriteLine(line *Line) error {
-	data, err := json.Marshal(&line)
-	if err != nil {
-		return err
-	}
-
-	if _, err := p.writer.Write(data); err != nil {
-		return err
-	}
-	if err := p.writer.WriteByte('\n'); err != nil {
-		return err
-	}
-
-	return p.writer.Flush()
+	return p.encoder.Encode(line)
 }
 
 func (p *Producer) Close() error {
+	err := p.file.Sync()
+	if err != nil {
+		return err
+	}
 	return p.file.Close()
 }

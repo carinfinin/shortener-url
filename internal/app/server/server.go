@@ -4,7 +4,7 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/router"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
-	"github.com/carinfinin/shortener-url/internal/app/storage/store"
+	"github.com/carinfinin/shortener-url/internal/app/storage/storefile"
 	"net/http"
 )
 
@@ -15,7 +15,9 @@ type Server struct {
 }
 
 func New(config *config.Config) (*Server, error) {
-	s, err := store.New(config.FilePath)
+
+	s, err := storefile.New(config.FilePath)
+
 	if err != nil {
 		return nil, err
 	}

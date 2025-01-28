@@ -1,14 +1,15 @@
-package store
+package storefile
 
 import (
-	"bufio"
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
 )
 
 type Consumer struct {
 	file    *os.File
-	scanner *bufio.Scanner
+	decoder *json.Decoder
 }
 
 func NewConsumer(path string) (*Consumer, error) {
@@ -18,7 +19,7 @@ func NewConsumer(path string) (*Consumer, error) {
 	}
 	return &Consumer{
 		file:    file,
-		scanner: bufio.NewScanner(file),
+		decoder: json.NewDecoder(file),
 	}, nil
 }
 func (c *Consumer) Close() error {
@@ -28,12 +29,13 @@ func (c *Consumer) Close() error {
 func (c *Consumer) ReadAll() (map[string]string, error) {
 
 	result := map[string]string{}
-	for c.scanner.Scan() {
-		data := c.scanner.Bytes()
-
-		line := Line{}
-		err := json.Unmarshal(data, &line)
+	line := Line{}
+	for {
+		err := c.decoder.Decode(&line)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return nil, err
 		}
 		result[line.ID] = line.URL
