@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"math/rand"
 	"time"
 )
@@ -8,6 +9,11 @@ import (
 type Repositories interface {
 	AddURL(url string) (string, error)
 	GetURL(xmlID string) (string, error)
+	Close() error
+}
+
+type ProducerInterface interface {
+	WriteLine(line *models.Line) error
 	Close() error
 }
 

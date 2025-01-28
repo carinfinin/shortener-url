@@ -3,6 +3,7 @@ package storefile
 import (
 	"encoding/json"
 	"errors"
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"io"
 	"os"
 )
@@ -29,7 +30,7 @@ func (c *Consumer) Close() error {
 func (c *Consumer) ReadAll() (map[string]string, error) {
 
 	result := map[string]string{}
-	line := Line{}
+	line := models.Line{}
 	for {
 		err := c.decoder.Decode(&line)
 		if err != nil {

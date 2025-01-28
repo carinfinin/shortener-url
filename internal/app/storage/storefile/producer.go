@@ -2,6 +2,7 @@ package storefile
 
 import (
 	"encoding/json"
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"os"
 )
 
@@ -20,7 +21,7 @@ func NewProducer(path string) (*Producer, error) {
 		encoder: json.NewEncoder(file),
 	}, nil
 }
-func (p *Producer) WriteLine(line *Line) error {
+func (p *Producer) WriteLine(line *models.Line) error {
 	return p.encoder.Encode(line)
 }
 

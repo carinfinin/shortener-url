@@ -3,27 +3,16 @@ package storefile
 import (
 	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"sync"
 )
-
-/*TODO
-убрать consumer из new добавить producer
-producer consumer сделать чере json decode encode
-файл дердать открытым  писать в неего и закрыть потом чере grace fullshatdown
-file store сделать через  интерфейс (желательно)
-*/
 
 type Store struct {
 	store    map[string]string
 	mu       sync.Mutex
 	path     string
-	producer *Producer
-}
-
-type Line struct {
-	URL string `json:"url"`
-	ID  string `json:"id"`
+	producer storage.ProducerInterface
 }
 
 func readAllinMemory(path string) (map[string]string, error) {
@@ -71,7 +60,7 @@ func (s *Store) AddURL(url string) (string, error) {
 	s.mu.Lock()
 
 	xmlID := s.generateAndExistXMLID(storage.LengthXMLID)
-	line := Line{ID: xmlID, URL: url}
+	line := models.Line{ID: xmlID, URL: url}
 
 	err := s.producer.WriteLine(&line)
 	if err != nil {

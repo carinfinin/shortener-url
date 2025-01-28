@@ -7,3 +7,8 @@ type Request struct {
 type Response struct {
 	Result string `json:"result"`
 }
+
+type Line struct {
+	URL string `json:"url"`
+	ID  string `json:"id"`
+}
