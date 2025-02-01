@@ -1,7 +1,10 @@
 package router
 
 import (
+	"encoding/json"
+	"github.com/carinfinin/shortener-url/internal/app/logger"
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 	"io"
@@ -22,9 +25,12 @@ func ConfigureRouter(s storage.Repositories, url string) *Router {
 		Store:  s,
 		URL:    url,
 	}
+	r.Handle.Use(middleware2.CompressGzipWriter)
+	r.Handle.Use(middleware2.CompressGzipReader)
+	r.Handle.Use(middleware2.RequestLogger)
+	r.Handle.Use(middleware2.ResponseLogger)
 
-	r.Handle.Use(middleware2.Logging)
-
+	r.Handle.Post("/api/shorten", JSONHandle(r))
 	r.Handle.Post("/", CreateURL(r))
 	r.Handle.Get("/{id}", GetURL(r))
 
@@ -42,7 +48,12 @@ func CreateURL(r Router) http.HandlerFunc {
 
 		url := strings.TrimSpace(string(body))
 
-		xmlID := r.Store.AddURL(url)
+		xmlID, err := r.Store.AddURL(url)
+		if err != nil {
+			logger.Log.Error("CreateURL", err)
+			http.Error(res, "CreateURL", http.StatusInternalServerError)
+			return
+		}
 		newURL := r.URL + "/" + xmlID
 
 		res.Header().Set("Content-Type", "text/plain")
@@ -75,5 +86,45 @@ func GetURL(r Router) http.HandlerFunc {
 		}
 
 		http.Redirect(res, req, url, http.StatusTemporaryRedirect)
+	}
+}
+
+func JSONHandle(r Router) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+
+		logger.Log.Info("start handle JSON")
+
+		var req models.Request
+		decoder := json.NewDecoder(request.Body)
+		err := decoder.Decode(&req)
+		if err != nil {
+			logger.Log.Error("Decode error", err)
+			http.Error(writer, "bad request", http.StatusBadRequest)
+			return
+		}
+		req.URL = strings.TrimSpace(req.URL)
+
+		xmlID, err := r.Store.AddURL(req.URL)
+		if err != nil {
+			logger.Log.Error("JSONHandle", err)
+			http.Error(writer, "error add url", http.StatusInternalServerError)
+			return
+		}
+
+		var res models.Response
+
+		res.Result = r.URL + "/" + xmlID
+
+		encoder := json.NewEncoder(writer)
+
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusCreated)
+
+		if err := encoder.Encode(res); err != nil {
+			logger.Log.Error("Encode error", err)
+			http.Error(writer, "bad request", http.StatusBadRequest)
+			return
+		}
+
 	}
 }

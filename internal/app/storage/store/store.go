@@ -2,9 +2,9 @@ package store
 
 import (
 	"fmt"
-	"math/rand"
+	"github.com/carinfinin/shortener-url/internal/app/logger"
+	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"sync"
-	"time"
 )
 
 type Store struct {
@@ -12,17 +12,17 @@ type Store struct {
 	mu    sync.Mutex
 }
 
-func New() *Store {
+func New() (*Store, error) {
+	logger.Log.Info("store starting")
+
 	return &Store{
-		store: make(map[string]string),
+		store: map[string]string{},
 		mu:    sync.Mutex{},
-	}
+	}, nil
 }
 
-const lengthXMLID int64 = 10
-
 func (s *Store) generateAndExistXMLID(length int64) string {
-	xmlID := generateXMLID(length)
+	xmlID := storage.GenerateXMLID(length)
 	if _, ok := s.store[xmlID]; ok {
 		return s.generateAndExistXMLID(length + 1)
 	} else {
@@ -30,12 +30,13 @@ func (s *Store) generateAndExistXMLID(length int64) string {
 	}
 }
 
-func (s *Store) AddURL(url string) string {
+func (s *Store) AddURL(url string) (string, error) {
+
 	s.mu.Lock()
-	xmlID := s.generateAndExistXMLID(lengthXMLID)
+	xmlID := s.generateAndExistXMLID(storage.LengthXMLID)
 	s.store[xmlID] = url
 	s.mu.Unlock()
-	return xmlID
+	return xmlID, nil
 }
 
 func (s *Store) GetURL(xmlID string) (string, error) {
@@ -45,17 +46,8 @@ func (s *Store) GetURL(xmlID string) (string, error) {
 	}
 	return v, nil
 }
-
-func generateXMLID(l int64) string {
-
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	letters := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
-
-	b := make([]byte, l)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-
-	return string(b)
+func (s *Store) Close() error {
+	logger.Log.Info("closed store")
+	s.store = nil
+	return nil
 }
