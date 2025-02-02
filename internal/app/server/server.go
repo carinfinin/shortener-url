@@ -24,7 +24,7 @@ func New(config *config.Config) (*Server, error) {
 	return &Server{
 		Addr:   config.Addr,
 		Store:  s,
-		Router: router.ConfigureRouter(s, config.URL),
+		Router: router.ConfigureRouter(s, config),
 	}, nil
 }
 
