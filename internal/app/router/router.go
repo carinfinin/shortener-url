@@ -2,10 +2,12 @@ package router
 
 import (
 	"encoding/json"
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
+	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
@@ -16,14 +18,16 @@ type Router struct {
 	Handle *chi.Mux
 	Store  storage.Repositories
 	URL    string
+	Config *config.Config
 }
 
-func ConfigureRouter(s storage.Repositories, url string) *Router {
+func ConfigureRouter(s storage.Repositories, config *config.Config) *Router {
 
 	r := Router{
 		Handle: chi.NewRouter(),
 		Store:  s,
-		URL:    url,
+		URL:    config.URL,
+		Config: config,
 	}
 	r.Handle.Use(middleware2.CompressGzipWriter)
 	r.Handle.Use(middleware2.CompressGzipReader)
@@ -32,6 +36,7 @@ func ConfigureRouter(s storage.Repositories, url string) *Router {
 
 	r.Handle.Post("/api/shorten", JSONHandle(r))
 	r.Handle.Post("/", CreateURL(r))
+	r.Handle.Get("/ping", PingDB(r))
 	r.Handle.Get("/{id}", GetURL(r))
 
 	return &r
@@ -125,6 +130,22 @@ func JSONHandle(r Router) http.HandlerFunc {
 			http.Error(writer, "bad request", http.StatusBadRequest)
 			return
 		}
+
+	}
+}
+
+func PingDB(r Router) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		logger.Log.Info("PingDB handler start")
+
+		err := storepg.Ping(r.Config.DBPath)
+		if err != nil {
+			logger.Log.Info("PingDB handler error: ", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+		}
+		logger.Log.Info("PingDB handler status OK")
+
+		writer.WriteHeader(http.StatusOK)
 
 	}
 }

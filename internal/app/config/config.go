@@ -10,6 +10,7 @@ type Config struct {
 	URL      string
 	LogLevel string
 	FilePath string
+	DBPath   string
 }
 
 func New() *Config {
@@ -19,6 +20,7 @@ func New() *Config {
 	flag.StringVar(&config.URL, "b", "http://localhost:8080", "result short url")
 	flag.StringVar(&config.LogLevel, "level", "info", "log level")
 	flag.StringVar(&config.FilePath, "f", "data.json", "file path")
+	flag.StringVar(&config.DBPath, "d", "host=localhost user=user password=password dbname=shortener_url sslmode=disable", "db path")
 	flag.Parse()
 
 	if envServerAddr := os.Getenv("SERVER_ADDRESS"); envServerAddr != "" {
@@ -29,6 +31,9 @@ func New() *Config {
 	}
 	if envFilePath := os.Getenv("FILE_STORAGE_PATH"); envFilePath != "" {
 		config.FilePath = envFilePath
+	}
+	if DBPath := os.Getenv("DATABASE_DSN"); DBPath != "" {
+		config.FilePath = DBPath
 	}
 	return &config
 }
