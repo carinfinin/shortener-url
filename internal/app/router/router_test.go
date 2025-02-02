@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/stretchr/testify/assert"
@@ -43,7 +44,8 @@ func TestCreateURL(t *testing.T) {
 
 			s, err := store.New()
 			require.NoError(t, err)
-			r := ConfigureRouter(s, test.url)
+			cfg := config.Config{URL: test.url}
+			r := ConfigureRouter(s, &cfg)
 			w := httptest.NewRecorder()
 
 			h := CreateURL(*r)
@@ -99,7 +101,8 @@ func TestGetURL(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodGet, test.request+xmlID, nil)
 
-			r := ConfigureRouter(s, test.url)
+			cfg := config.Config{URL: test.url}
+			r := ConfigureRouter(s, &cfg)
 			w := httptest.NewRecorder()
 
 			h := GetURL(*r)
@@ -156,7 +159,8 @@ func TestJSONHandle(t *testing.T) {
 			s, err := store.New()
 			require.NoError(t, err)
 
-			r := ConfigureRouter(s, test.url)
+			cfg := config.Config{URL: test.url}
+			r := ConfigureRouter(s, &cfg)
 			hf := JSONHandle(*r)
 			hf(w, request)
 			result := w.Result()
