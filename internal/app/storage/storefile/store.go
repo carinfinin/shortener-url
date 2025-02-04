@@ -15,6 +15,7 @@ type Store struct {
 	producer storage.ProducerInterface
 }
 
+// TODO нужно консьюмер наверное убрать
 func readAllinMemory(path string) (map[string]string, error) {
 	logger.Log.Info("coll function readAllinMemory")
 	consumer, err := NewConsumer(path)
