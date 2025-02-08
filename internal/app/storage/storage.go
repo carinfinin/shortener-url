@@ -9,6 +9,7 @@ import (
 type Repositories interface {
 	AddURL(url string) (string, error)
 	GetURL(xmlID string) (string, error)
+	AddURLBatch([]models.RequestBatch) ([]models.ResponseBatch, error)
 	Close() error
 }
 

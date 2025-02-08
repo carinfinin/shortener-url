@@ -2,6 +2,7 @@ package storefile
 
 import (
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
@@ -13,6 +14,7 @@ type Store struct {
 	mu       sync.Mutex
 	path     string
 	producer storage.ProducerInterface
+	URL      string
 }
 
 // TODO нужно консьюмер наверное убрать
@@ -27,15 +29,16 @@ func readAllinMemory(path string) (map[string]string, error) {
 	return consumer.ReadAll()
 }
 
-func New(path string) (*Store, error) {
+func New(cfg *config.Config) (*Store, error) {
+	logger.Log.Info("start store in file")
 
-	data, err := readAllinMemory(path)
+	data, err := readAllinMemory(cfg.FilePath)
 	if err != nil {
 		logger.Log.Error("error in readAllinMemory", err)
 		return nil, err
 	}
 
-	producer, err := NewProducer(path)
+	producer, err := NewProducer(cfg.FilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +46,9 @@ func New(path string) (*Store, error) {
 	return &Store{
 		store:    data,
 		mu:       sync.Mutex{},
-		path:     path,
+		path:     cfg.FilePath,
 		producer: producer,
+		URL:      cfg.URL,
 	}, nil
 }
 
@@ -90,4 +94,35 @@ func (s *Store) Close() error {
 	logger.Log.Info("closed store")
 	s.store = nil
 	return nil
+}
+
+func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch, error) {
+	var result []models.ResponseBatch
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, v := range data {
+		if _, ok := s.store[v.ID]; ok {
+			return nil, fmt.Errorf("incorrect id in data request")
+		}
+	}
+	for _, v := range data {
+
+		line := models.Line{ID: v.ID, URL: v.LongURL}
+
+		err := s.producer.WriteLine(&line)
+		if err != nil {
+			return nil, err
+		}
+		s.store[v.ID] = v.LongURL
+
+		var tmp = models.ResponseBatch{
+			ID:       v.ID,
+			ShortURL: s.URL + "/" + v.ID,
+		}
+		result = append(result, tmp)
+
+	}
+
+	return result, nil
 }

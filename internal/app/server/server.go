@@ -22,7 +22,7 @@ func New(config *config.Config) (*Server, error) {
 	var server Server
 
 	if config.DBPath != "" {
-		s, err := storepg.New(config.DBPath)
+		s, err := storepg.New(config)
 		if err != nil {
 			return nil, err
 		}
@@ -30,14 +30,14 @@ func New(config *config.Config) (*Server, error) {
 		server.Store = s
 
 	} else if config.FilePath != "" {
-		s, err := storefile.New(config.FilePath)
+		s, err := storefile.New(config)
 		if err != nil {
 			return nil, err
 		}
 		server.Store = s
 
 	} else {
-		s, err := store.New()
+		s, err := store.New(config)
 		if err != nil {
 			return nil, err
 		}

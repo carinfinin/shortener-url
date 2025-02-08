@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"sync"
@@ -12,19 +14,21 @@ import (
 )
 
 type Store struct {
-	mu sync.Mutex
-	db *sql.DB
+	mu  sync.Mutex
+	db  *sql.DB
+	url string
 }
 
-func New(strDB string) (*Store, error) {
+func New(cfg *config.Config) (*Store, error) {
 
-	db, err := sql.Open("pgx", strDB)
+	db, err := sql.Open("pgx", cfg.DBPath)
 	if err != nil {
 		return nil, err
 	}
 	return &Store{
-		mu: sync.Mutex{},
-		db: db,
+		mu:  sync.Mutex{},
+		db:  db,
+		url: cfg.URL,
 	}, nil
 }
 
@@ -103,4 +107,39 @@ func (s *Store) CreateTableForDB(ctx context.Context) error {
 	logger.Log.Info(result)
 
 	return nil
+}
+func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch, error) {
+
+	var result []models.ResponseBatch
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare("INSERT INTO urls (url, xmlid) SELECT $1, $2 WHERE NOT EXISTS (SELECT 1 FROM urls WHERE xmlid = $3)")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range data {
+		s.mu.Lock()
+		_, err := stmt.Exec(v.LongURL, v.ID, v.ID)
+		s.mu.Unlock()
+
+		if err != nil {
+			return nil, err
+		}
+
+		var tmp = models.ResponseBatch{
+			ID:       v.ID,
+			ShortURL: s.url + "/" + v.ID,
+		}
+		result = append(result, tmp)
+
+	}
+	tx.Commit()
+
+	return result, nil
 }

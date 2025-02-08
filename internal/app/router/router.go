@@ -35,6 +35,7 @@ func ConfigureRouter(s storage.Repositories, config *config.Config) *Router {
 	r.Handle.Use(middleware2.ResponseLogger)
 
 	r.Handle.Post("/api/shorten", JSONHandle(r))
+	r.Handle.Post("/api/shorten/batch", JSONHandleBatch(r))
 	r.Handle.Post("/", CreateURL(r))
 	r.Handle.Get("/ping", PingDB(r))
 	r.Handle.Get("/{id}", GetURL(r))
@@ -126,6 +127,43 @@ func JSONHandle(r Router) http.HandlerFunc {
 		writer.WriteHeader(http.StatusCreated)
 
 		if err := encoder.Encode(res); err != nil {
+			logger.Log.Error("Encode error", err)
+			http.Error(writer, "bad request", http.StatusBadRequest)
+			return
+		}
+
+	}
+}
+
+func JSONHandleBatch(r Router) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+
+		logger.Log.Info("start handle JSONHandleBatch")
+
+		var data = make([]models.RequestBatch, 0)
+
+		decoder := json.NewDecoder(request.Body)
+
+		err := decoder.Decode(&data)
+		if err != nil {
+			logger.Log.Error("Decode error", err)
+			http.Error(writer, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		result, err := r.Store.AddURLBatch(data)
+		if err != nil {
+			logger.Log.Error("JSONHandleBatch AddURLBatch error", err)
+			http.Error(writer, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		encoder := json.NewEncoder(writer)
+
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusCreated)
+
+		if err := encoder.Encode(result); err != nil {
 			logger.Log.Error("Encode error", err)
 			http.Error(writer, "bad request", http.StatusBadRequest)
 			return
