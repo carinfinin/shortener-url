@@ -102,28 +102,6 @@ func (s *Store) GetURL(xmlID string) (string, error) {
 	return URL, nil
 }
 
-func (s *Store) GetXmlID(url string) (string, error) {
-	logger.Log.Info("start function GetXmlID")
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	var xmlID string
-
-	row := s.db.QueryRowContext(ctx, "SELECT xmlid FROM urls WHERE url = $1", url)
-	err := row.Scan(&xmlID)
-	if err != nil {
-		logger.Log.Error("GetXmlID scan error", err)
-		return "", err
-	}
-	err = row.Err()
-	if err != nil {
-		logger.Log.Error("GetXmlID error", err)
-		return "", err
-	}
-
-	return xmlID, nil
-}
-
 func (s *Store) Close() error {
 	return s.db.Close()
 }
