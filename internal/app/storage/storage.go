@@ -1,10 +1,13 @@
 package storage
 
 import (
+	"errors"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"math/rand"
 	"time"
 )
+
+var ErrDouble = errors.New("Duplicate URL")
 
 type Repositories interface {
 	AddURL(url string) (string, error)

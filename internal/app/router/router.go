@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
@@ -55,14 +56,21 @@ func CreateURL(r Router) http.HandlerFunc {
 		url := strings.TrimSpace(string(body))
 
 		xmlID, err := r.Store.AddURL(url)
+
+		newURL := r.URL + "/" + xmlID
+		res.Header().Set("Content-Type", "text/plain")
+
 		if err != nil {
+			if errors.Is(err, storage.ErrDouble) {
+				res.WriteHeader(http.StatusConflict)
+				res.Write([]byte(newURL))
+				return
+			}
 			logger.Log.Error("CreateURL", err)
 			http.Error(res, "CreateURL", http.StatusInternalServerError)
 			return
 		}
-		newURL := r.URL + "/" + xmlID
 
-		res.Header().Set("Content-Type", "text/plain")
 		res.WriteHeader(http.StatusCreated)
 		res.Write([]byte(newURL))
 	}
@@ -111,7 +119,8 @@ func JSONHandle(r Router) http.HandlerFunc {
 		req.URL = strings.TrimSpace(req.URL)
 
 		xmlID, err := r.Store.AddURL(req.URL)
-		if err != nil {
+		if err != nil && len(xmlID) == 0 {
+
 			logger.Log.Error("JSONHandle", err)
 			http.Error(writer, "error add url", http.StatusInternalServerError)
 			return
@@ -124,7 +133,12 @@ func JSONHandle(r Router) http.HandlerFunc {
 		encoder := json.NewEncoder(writer)
 
 		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusCreated)
+
+		if err != nil && errors.Is(err, storage.ErrDouble) {
+			writer.WriteHeader(http.StatusConflict)
+		} else {
+			writer.WriteHeader(http.StatusCreated)
+		}
 
 		if err := encoder.Encode(res); err != nil {
 			logger.Log.Error("Encode error", err)
