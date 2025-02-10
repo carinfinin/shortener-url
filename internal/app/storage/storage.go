@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var ErrDouble = errors.New("Duplicate URL")
+var ErrDouble = errors.New("duplicate url")
 
 type Repositories interface {
 	AddURL(url string) (string, error)
