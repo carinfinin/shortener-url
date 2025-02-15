@@ -8,7 +8,6 @@ import (
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
-	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
@@ -55,9 +54,9 @@ func CreateURL(r Router) http.HandlerFunc {
 
 		url := strings.TrimSpace(string(body))
 
-		xmlID, err := r.Store.AddURL(url)
+		urlID, err := r.Store.AddURL(url)
 
-		newURL := r.URL + "/" + xmlID
+		newURL := r.URL + "/" + urlID
 		res.Header().Set("Content-Type", "text/plain")
 
 		if err != nil {
@@ -118,8 +117,8 @@ func JSONHandle(r Router) http.HandlerFunc {
 		}
 		req.URL = strings.TrimSpace(req.URL)
 
-		xmlID, err := r.Store.AddURL(req.URL)
-		if err != nil && len(xmlID) == 0 {
+		urlID, err := r.Store.AddURL(req.URL)
+		if err != nil && len(urlID) == 0 {
 
 			logger.Log.Error("JSONHandle", err)
 			http.Error(writer, "error add url", http.StatusInternalServerError)
@@ -128,7 +127,7 @@ func JSONHandle(r Router) http.HandlerFunc {
 
 		var res models.Response
 
-		res.Result = r.URL + "/" + xmlID
+		res.Result = r.URL + "/" + urlID
 
 		encoder := json.NewEncoder(writer)
 
@@ -190,7 +189,7 @@ func PingDB(r Router) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		logger.Log.Info("PingDB handler start")
 
-		err := storepg.Ping(r.Config.DBPath)
+		err := r.Store.Ping()
 		if err != nil {
 			logger.Log.Info("PingDB handler error: ", err)
 			writer.WriteHeader(http.StatusInternalServerError)

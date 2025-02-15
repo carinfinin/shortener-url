@@ -37,10 +37,18 @@ func (s *Store) generateAndExistXMLID(length int64) string {
 func (s *Store) AddURL(url string) (string, error) {
 
 	s.mu.Lock()
-	xmlID := s.generateAndExistXMLID(storage.LengthXMLID)
-	s.store[xmlID] = url
-	s.mu.Unlock()
-	return xmlID, nil
+	defer s.mu.Unlock()
+
+	ID := s.generateAndExistXMLID(storage.LengthXMLID)
+	for i, v := range s.store {
+		if v == url {
+			logger.Log.Error(" AddURL error : дублирование URL")
+
+			return i, storage.ErrDouble
+		}
+	}
+	s.store[ID] = url
+	return ID, nil
 }
 
 func (s *Store) GetURL(xmlID string) (string, error) {
@@ -60,6 +68,8 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 
 	var result []models.ResponseBatch
 	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	for _, v := range data {
 		if _, ok := s.store[v.ID]; ok {
 			return nil, fmt.Errorf("incorrect id in data request")
@@ -75,7 +85,10 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 		result = append(result, tmp)
 
 	}
-	s.mu.Unlock()
 
 	return result, nil
+}
+
+func (s *Store) Ping() error {
+	return fmt.Errorf("does not db")
 }

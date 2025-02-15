@@ -11,12 +11,10 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"sync"
 	"time"
 )
 
 type Store struct {
-	mu  sync.Mutex
 	db  *sql.DB
 	url string
 }
@@ -28,23 +26,15 @@ func New(cfg *config.Config) (*Store, error) {
 		return nil, err
 	}
 	return &Store{
-		mu:  sync.Mutex{},
 		db:  db,
 		url: cfg.URL,
 	}, nil
 }
 
-func Ping(ps string) error {
-
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func (s *Store) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	if err = db.PingContext(ctx); err != nil {
+	if err := s.db.PingContext(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -55,9 +45,6 @@ func (s *Store) AddURL(url string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	xmlID := storage.GenerateXMLID(storage.LengthXMLID)
 
 	//INSERT INTO urls (url, xmlid) SELECT 'dfgddfgd', '123' WHERE NOT EXISTS(SELECT 1 FROM urls WHERE xmlid = '123');
@@ -66,7 +53,7 @@ func (s *Store) AddURL(url string) (string, error) {
 		var errPG *pgconn.PgError
 		if errors.As(err, &errPG) && pgerrcode.IsIntegrityConstraintViolation(errPG.Code) {
 
-			logger.Log.Error(" AddURL error : дублтрование URL")
+			logger.Log.Error(" AddURL error : дублирование URL")
 			row := s.db.QueryRowContext(ctx, "SELECT xmlid FROM urls WHERE url = $1;", url)
 			if err = row.Scan(&xmlID); err != nil {
 				return "", err
@@ -120,6 +107,7 @@ func (s *Store) CreateTableForDB(ctx context.Context) error {
 
 	return nil
 }
+
 func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch, error) {
 
 	var result []models.ResponseBatch
@@ -136,9 +124,7 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 	}
 
 	for _, v := range data {
-		s.mu.Lock()
 		_, err := stmt.Exec(v.LongURL, v.ID, v.ID)
-		s.mu.Unlock()
 
 		if err != nil {
 			return nil, err

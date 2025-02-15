@@ -53,28 +53,34 @@ func New(cfg *config.Config) (*Store, error) {
 }
 
 func (s *Store) generateAndExistXMLID(length int64) string {
-	xmlID := storage.GenerateXMLID(length)
-	if _, ok := s.store[xmlID]; ok {
+	ID := storage.GenerateXMLID(length)
+	if _, ok := s.store[ID]; ok {
 		return s.generateAndExistXMLID(length + 1)
 	} else {
-		return xmlID
+		return ID
 	}
 }
 
 func (s *Store) AddURL(url string) (string, error) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	xmlID := s.generateAndExistXMLID(storage.LengthXMLID)
-	line := models.Line{ID: xmlID, URL: url}
+	ID := s.generateAndExistXMLID(storage.LengthXMLID)
+	line := models.Line{ID: ID, URL: url}
 
 	err := s.producer.WriteLine(&line)
 	if err != nil {
 		return "", err
 	}
-	s.store[xmlID] = url
+	for i, v := range s.store {
+		if v == url {
+			logger.Log.Error(" AddURL error : дублирование URL")
+			return i, storage.ErrDouble
+		}
+	}
+	s.store[ID] = url
 
-	s.mu.Unlock()
-	return xmlID, nil
+	return ID, nil
 }
 
 func (s *Store) GetURL(xmlID string) (string, error) {
@@ -125,4 +131,7 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 	}
 
 	return result, nil
+}
+func (s *Store) Ping() error {
+	return fmt.Errorf("does not db")
 }
