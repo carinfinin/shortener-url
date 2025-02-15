@@ -164,6 +164,10 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 		tmp.ShortURL = s.url + "/" + tmp.ID
 		result = append(result, tmp)
 	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
 	///
 	tx.Commit()
 
