@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"github.com/carinfinin/shortener-url/internal/app/models"
@@ -12,7 +11,6 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"strings"
 	"time"
 )
 
@@ -125,7 +123,6 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 		return nil, err
 	}
 
-	urlsID := []any{}
 	for _, v := range data {
 		_, err := stmt.Exec(v.LongURL, v.ID, v.ID)
 
@@ -138,37 +135,8 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 			ShortURL: s.url + "/" + v.ID,
 		}
 		result = append(result, tmp)
-		urlsID = append(urlsID, v.ID)
 	}
-	//*
 
-	fmt.Println(urlsID)
-	placeholders := make([]string, len(urlsID))
-	for i := range urlsID {
-		placeholders[i] = fmt.Sprintf("$%d", i+1)
-	}
-	query := fmt.Sprintf("SELECT xmlid FROM urls WHERE xmlID NOT IN (%s)", strings.Join(placeholders, ", "))
-
-	rows, err := tx.Query(query, urlsID...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var tmp = models.ResponseBatch{}
-		err := rows.Scan(&tmp.ID)
-		if err != nil {
-			return nil, err
-		}
-		tmp.ShortURL = s.url + "/" + tmp.ID
-		result = append(result, tmp)
-	}
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
-	///
 	tx.Commit()
 
 	return result, nil
