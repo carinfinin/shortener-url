@@ -66,7 +66,7 @@ func (s *Store) AddURL(url string) (string, error) {
 		var errPG *pgconn.PgError
 		if errors.As(err, &errPG) && pgerrcode.IsIntegrityConstraintViolation(errPG.Code) {
 
-			logger.Log.Error(" AddURL error : дублтрование URL")
+			logger.Log.Error(" AddURL error : дублирование URL")
 			row := s.db.QueryRowContext(ctx, "SELECT xmlid FROM urls WHERE url = $1;", url)
 			if err = row.Scan(&xmlID); err != nil {
 				return "", err

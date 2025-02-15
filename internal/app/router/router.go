@@ -34,6 +34,7 @@ func ConfigureRouter(s storage.Repositories, config *config.Config) *Router {
 	r.Handle.Use(middleware2.CompressGzipReader)
 	r.Handle.Use(middleware2.RequestLogger)
 	r.Handle.Use(middleware2.ResponseLogger)
+	r.Handle.Use(middleware2.AuthMiddleWare)
 
 	r.Handle.Post("/api/shorten", JSONHandle(r))
 	r.Handle.Post("/api/shorten/batch", JSONHandleBatch(r))

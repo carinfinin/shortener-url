@@ -22,3 +22,8 @@ type ResponseBatch struct {
 	ID       string `json:"correlation_id"`
 	ShortURL string `json:"short_url"`
 }
+
+type AuthLine struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
