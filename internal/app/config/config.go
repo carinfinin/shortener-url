@@ -20,9 +20,9 @@ func New() *Config {
 	flag.StringVar(&config.URL, "b", "http://localhost:8080", "result short url")
 	flag.StringVar(&config.LogLevel, "level", "info", "log level")
 	/* data.json */
-	flag.StringVar(&config.FilePath, "f", "data.json", "file path")
+	flag.StringVar(&config.FilePath, "f", "", "file path")
 	/* host=localhost user=user password=password dbname=shortener_url sslmode=disable */
-	flag.StringVar(&config.DBPath, "d", "host=localhost user=user password=password dbname=shortener_url sslmode=disable", "db path")
+	flag.StringVar(&config.DBPath, "d", "", "db path")
 	flag.Parse()
 
 	if envServerAddr := os.Getenv("SERVER_ADDRESS"); envServerAddr != "" {
