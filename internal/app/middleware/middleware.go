@@ -1,11 +1,9 @@
 package middleware
 
 import (
-	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -66,35 +64,4 @@ func ResponseLogger(next http.Handler) http.Handler {
 
 	}
 	return http.HandlerFunc(fn)
-}
-
-func AuthMiddleWare(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-
-		fmt.Println(request.Cookies())
-		nameCookie := "token"
-		valueCookie := generateID()
-
-		c, err := request.Cookie(nameCookie)
-		if err != nil || !decodeCookie(c) {
-			c := http.Cookie{
-				Name:   nameCookie,
-				Value:  valueCookie,
-				MaxAge: 300,
-			}
-			http.SetCookie(writer, &c)
-		}
-		next.ServeHTTP(writer, request)
-	})
-}
-
-func generateID() string {
-	return strconv.Itoa(222222222)
-}
-func decodeCookie(cookie *http.Cookie) bool {
-	if cookie.Value != "" {
-		return true
-	}
-	return false
-
 }
