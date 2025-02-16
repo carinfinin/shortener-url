@@ -90,5 +90,5 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 }
 
 func (s *Store) Ping() error {
-	return fmt.Errorf("does not db")
+	return nil
 }
