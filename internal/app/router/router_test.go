@@ -2,6 +2,7 @@ package router
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
@@ -96,10 +97,13 @@ func TestGetURL(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cfg := config.Config{URL: test.url}
 
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
 			s, err := store.New(&cfg)
 			require.NoError(t, err)
 
-			xmlID, err := s.AddURL(test.data)
+			xmlID, err := s.AddURL(ctx, test.data)
 			require.NoError(t, err)
 
 			request := httptest.NewRequest(http.MethodGet, test.request+xmlID, nil)
