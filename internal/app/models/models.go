@@ -12,3 +12,13 @@ type Line struct {
 	URL string `json:"url"`
 	ID  string `json:"id"`
 }
+
+type RequestBatch struct {
+	ID      string `json:"correlation_id"`
+	LongURL string `json:"original_url"`
+}
+
+type ResponseBatch struct {
+	ID       string `json:"correlation_id"`
+	ShortURL string `json:"short_url"`
+}

@@ -2,8 +2,10 @@ package router
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +18,7 @@ import (
 )
 
 func TestCreateURL(t *testing.T) {
+	t.Parallel()
 	type want struct {
 		contentType string
 		statusCode  int
@@ -40,10 +43,10 @@ func TestCreateURL(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodPost, test.request, strings.NewReader("https://yandex.ru"))
-
-			s, err := store.New()
+			cfg := config.Config{URL: test.url}
+			s, err := store.New(&cfg)
 			require.NoError(t, err)
-			r := ConfigureRouter(s, test.url)
+			r := ConfigureRouter(s, &cfg)
 			w := httptest.NewRecorder()
 
 			h := CreateURL(*r)
@@ -67,6 +70,8 @@ func TestCreateURL(t *testing.T) {
 }
 
 func TestGetURL(t *testing.T) {
+	t.Parallel()
+
 	type want struct {
 		contentType string
 		statusCode  int
@@ -90,16 +95,20 @@ func TestGetURL(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			cfg := config.Config{URL: test.url}
 
-			s, err := store.New()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			s, err := store.New(&cfg)
 			require.NoError(t, err)
 
-			xmlID, err := s.AddURL(test.data)
+			xmlID, err := s.AddURL(ctx, test.data)
 			require.NoError(t, err)
 
 			request := httptest.NewRequest(http.MethodGet, test.request+xmlID, nil)
 
-			r := ConfigureRouter(s, test.url)
+			r := ConfigureRouter(s, &cfg)
 			w := httptest.NewRecorder()
 
 			h := GetURL(*r)
@@ -126,6 +135,8 @@ func TestGetURL(t *testing.T) {
 }
 
 func TestJSONHandle(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		data       string
@@ -153,10 +164,12 @@ func TestJSONHandle(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodPost, test.request, buf)
 			w := httptest.NewRecorder()
-			s, err := store.New()
+			cfg := config.Config{URL: test.url}
+
+			s, err := store.New(&cfg)
 			require.NoError(t, err)
 
-			r := ConfigureRouter(s, test.url)
+			r := ConfigureRouter(s, &cfg)
 			hf := JSONHandle(*r)
 			hf(w, request)
 			result := w.Result()

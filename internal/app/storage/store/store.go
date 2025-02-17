@@ -1,8 +1,11 @@
 package store
 
 import (
+	"context"
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"sync"
 )
@@ -10,14 +13,16 @@ import (
 type Store struct {
 	store map[string]string
 	mu    sync.Mutex
+	URL   string
 }
 
-func New() (*Store, error) {
+func New(cfg *config.Config) (*Store, error) {
 	logger.Log.Info("store starting")
 
 	return &Store{
 		store: map[string]string{},
 		mu:    sync.Mutex{},
+		URL:   cfg.URL,
 	}, nil
 }
 
@@ -30,16 +35,24 @@ func (s *Store) generateAndExistXMLID(length int64) string {
 	}
 }
 
-func (s *Store) AddURL(url string) (string, error) {
+func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 
 	s.mu.Lock()
-	xmlID := s.generateAndExistXMLID(storage.LengthXMLID)
-	s.store[xmlID] = url
-	s.mu.Unlock()
-	return xmlID, nil
+	defer s.mu.Unlock()
+
+	ID := s.generateAndExistXMLID(storage.LengthXMLID)
+	for i, v := range s.store {
+		if v == url {
+			logger.Log.Error(" AddURL error : дублирование URL")
+
+			return i, storage.ErrDouble
+		}
+	}
+	s.store[ID] = url
+	return ID, nil
 }
 
-func (s *Store) GetURL(xmlID string) (string, error) {
+func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	v, ok := s.store[xmlID]
 	if !ok {
 		return "", fmt.Errorf("ключ не найден")
@@ -49,5 +62,34 @@ func (s *Store) GetURL(xmlID string) (string, error) {
 func (s *Store) Close() error {
 	logger.Log.Info("closed store")
 	s.store = nil
+	return nil
+}
+
+func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error) {
+
+	var result []models.ResponseBatch
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, v := range data {
+		if _, ok := s.store[v.ID]; ok {
+			return nil, fmt.Errorf("incorrect id in data request")
+		}
+	}
+	for _, v := range data {
+		s.store[v.ID] = v.LongURL
+
+		var tmp = models.ResponseBatch{
+			ID:       v.ID,
+			ShortURL: s.URL + "/" + v.ID,
+		}
+		result = append(result, tmp)
+
+	}
+
+	return result, nil
+}
+
+func (s *Store) Ping() error {
 	return nil
 }
