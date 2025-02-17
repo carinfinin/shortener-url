@@ -13,7 +13,7 @@ import (
 
 type Server struct {
 	Addr   string
-	Store  storage.Repositories
+	Store  storage.Repository
 	Router *router.Router
 }
 

@@ -40,9 +40,9 @@ func (s *Store) Ping() error {
 	return nil
 }
 
-func (s *Store) AddURL(url string) (string, error) {
+func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	logger.Log.Info("start function AddURL")
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	xmlID := storage.GenerateXMLID(storage.LengthXMLID)
@@ -67,9 +67,9 @@ func (s *Store) AddURL(url string) (string, error) {
 	return xmlID, nil
 }
 
-func (s *Store) GetURL(xmlID string) (string, error) {
+func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	logger.Log.Info("start function GetURL")
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	var URL string
@@ -108,7 +108,7 @@ func (s *Store) CreateTableForDB(ctx context.Context) error {
 	return nil
 }
 
-func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch, error) {
+func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error) {
 
 	var result []models.ResponseBatch
 

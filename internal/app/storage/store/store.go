@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
@@ -34,7 +35,7 @@ func (s *Store) generateAndExistXMLID(length int64) string {
 	}
 }
 
-func (s *Store) AddURL(url string) (string, error) {
+func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -51,7 +52,7 @@ func (s *Store) AddURL(url string) (string, error) {
 	return ID, nil
 }
 
-func (s *Store) GetURL(xmlID string) (string, error) {
+func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	v, ok := s.store[xmlID]
 	if !ok {
 		return "", fmt.Errorf("ключ не найден")
@@ -64,7 +65,7 @@ func (s *Store) Close() error {
 	return nil
 }
 
-func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch, error) {
+func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error) {
 
 	var result []models.ResponseBatch
 	s.mu.Lock()

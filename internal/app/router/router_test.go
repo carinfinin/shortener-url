@@ -17,6 +17,7 @@ import (
 )
 
 func TestCreateURL(t *testing.T) {
+	t.Parallel()
 	type want struct {
 		contentType string
 		statusCode  int
@@ -68,6 +69,8 @@ func TestCreateURL(t *testing.T) {
 }
 
 func TestGetURL(t *testing.T) {
+	t.Parallel()
+
 	type want struct {
 		contentType string
 		statusCode  int
@@ -128,6 +131,8 @@ func TestGetURL(t *testing.T) {
 }
 
 func TestJSONHandle(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		data       string
