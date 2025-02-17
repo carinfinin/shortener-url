@@ -34,7 +34,7 @@ func ConfigureRouter(s storage.Repositories, config *config.Config) *Router {
 	r.Handle.Use(middleware2.CompressGzipReader)
 	r.Handle.Use(middleware2.RequestLogger)
 	r.Handle.Use(middleware2.ResponseLogger)
-	r.Handle.Use(middleware2.AuthMiddleWare)
+	//r.Handle.Use(middleware2.AuthMiddleWare)
 
 	r.Handle.Post("/api/shorten", JSONHandle(r))
 	r.Handle.Post("/api/shorten/batch", JSONHandleBatch(r))
@@ -159,12 +159,17 @@ func JSONHandleBatch(r Router) http.HandlerFunc {
 
 		decoder := json.NewDecoder(request.Body)
 
+		logger.Log.Info("start decoder")
+
 		err := decoder.Decode(&data)
 		if err != nil {
 			logger.Log.Error("Decode error", err)
 			http.Error(writer, "bad request", http.StatusBadRequest)
 			return
 		}
+
+		logger.Log.Info("start Decode data")
+		logger.Log.Info(data)
 
 		result, err := r.Store.AddURLBatch(data)
 		if err != nil {
@@ -173,10 +178,16 @@ func JSONHandleBatch(r Router) http.HandlerFunc {
 			return
 		}
 
+		logger.Log.Info("result", result)
+
 		encoder := json.NewEncoder(writer)
+
+		logger.Log.Info("encoder")
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusCreated)
+
+		logger.Log.Info("JSONHandleBatch ответ сервера: ", result)
 
 		if err := encoder.Encode(result); err != nil {
 			logger.Log.Error("Encode error", err)

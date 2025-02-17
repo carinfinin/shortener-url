@@ -60,6 +60,7 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 
 	var result []models.ResponseBatch
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	for _, v := range data {
 		if _, ok := s.store[v.ID]; ok {
 			return nil, fmt.Errorf("incorrect id in data request")
@@ -75,7 +76,6 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 		result = append(result, tmp)
 
 	}
-	s.mu.Unlock()
 
 	return result, nil
 }
