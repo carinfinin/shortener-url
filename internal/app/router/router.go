@@ -216,8 +216,12 @@ func GetUserURLs(r Router) http.HandlerFunc {
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		if len(data) == 0 {
+			writer.WriteHeader(http.StatusNoContent)
+			return
+		}
 		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusCreated)
+		writer.WriteHeader(http.StatusOK)
 
 		if err := encoder.Encode(data); err != nil {
 			logger.Log.Error("Encode error", err)

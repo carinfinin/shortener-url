@@ -21,12 +21,14 @@ var ErrorUserNotFound = errors.New("userID not found or invalid")
 func GenerateToken() string {
 	id := uuid.Must(uuid.NewRandom())
 	userID := id[:]
-	//userID := []byte("000007")
-	return string(userID)
+	return hex.EncodeToString(userID)
 }
 
 func EncodeToken(token string) (string, error) {
-	userID := []byte(token)
+	userID, err := hex.DecodeString(token)
+	if err != nil {
+		return "", err
+	}
 	aesBlock, err := aes.NewCipher(keyAuth)
 	if err != nil {
 		logger.Log.Error("Error generateToken NewCipher :", err)
