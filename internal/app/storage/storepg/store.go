@@ -87,7 +87,7 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 
 func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	logger.Log.Info("start function GetURL")
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	var URL string
