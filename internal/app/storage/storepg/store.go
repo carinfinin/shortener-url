@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"github.com/carinfinin/shortener-url/internal/app/models"
@@ -50,18 +52,21 @@ func Ping(ps string) error {
 	return nil
 }
 
-func (s *Store) AddURL(url string) (string, error) {
+func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	logger.Log.Info("start function AddURL")
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	xmlID := storage.GenerateXMLID(storage.LengthXMLID)
-
+	userID, ok := ctx.Value(auth.NameCookie).(string)
+	if !ok {
+		return "", auth.ErrorUserNotFound
+	}
 	//INSERT INTO urls (url, xmlid) SELECT 'dfgddfgd', '123' WHERE NOT EXISTS(SELECT 1 FROM urls WHERE xmlid = '123');
-	_, err := s.db.ExecContext(ctx, "INSERT INTO urls (url, xmlid) VALUES ($1, $2);", url, xmlID)
+	_, err := s.db.ExecContext(ctx, "INSERT INTO urls (url, user_id, xmlid) VALUES ($1, $2, $3);", url, userID, xmlID)
 	if err != nil {
 		var errPG *pgconn.PgError
 		if errors.As(err, &errPG) && pgerrcode.IsIntegrityConstraintViolation(errPG.Code) {
@@ -80,7 +85,7 @@ func (s *Store) AddURL(url string) (string, error) {
 	return xmlID, nil
 }
 
-func (s *Store) GetURL(xmlID string) (string, error) {
+func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	logger.Log.Info("start function GetURL")
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -111,6 +116,7 @@ func (s *Store) CreateTableForDB(ctx context.Context) error {
 	result, err := s.db.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS urls ("+
 		"id SERIAL PRIMARY KEY,"+
 		"url VARCHAR(255) NOT NULL UNIQUE,"+
+		"user_id VARCHAR(255) NOT NULL,"+
 		"xmlid VARCHAR(50) NOT NULL UNIQUE)")
 	if err != nil {
 		logger.Log.Error("CreateTableForDB error", err)
@@ -120,7 +126,7 @@ func (s *Store) CreateTableForDB(ctx context.Context) error {
 
 	return nil
 }
-func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch, error) {
+func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error) {
 
 	var result []models.ResponseBatch
 
@@ -130,14 +136,19 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.Prepare("INSERT INTO urls (url, xmlid) SELECT $1, $2 WHERE NOT EXISTS (SELECT 1 FROM urls WHERE xmlid = $3)")
+	userID, ok := ctx.Value(auth.NameCookie).(string)
+	if !ok {
+		return nil, auth.ErrorUserNotFound
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO urls (url, user_id, xmlid) SELECT $1, $2, $3 WHERE NOT EXISTS (SELECT 1 FROM urls WHERE xmlid = $4)")
 	if err != nil {
 		return nil, err
 	}
 
 	for _, v := range data {
 		s.mu.Lock()
-		_, err := stmt.Exec(v.LongURL, v.ID, v.ID)
+		_, err := stmt.Exec(v.LongURL, userID, v.ID, v.ID)
 		s.mu.Unlock()
 
 		if err != nil {
@@ -153,5 +164,36 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 	}
 	tx.Commit()
 
+	return result, nil
+}
+
+func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
+
+	result := []models.UserURL{}
+	userID, ok := ctx.Value(auth.NameCookie).(string)
+	if !ok {
+		return nil, auth.ErrorUserNotFound
+	}
+	fmt.Println("token :", userID)
+	rows, err := s.db.QueryContext(ctx, "SELECT url, xmlid FROM urls WHERE user_id = $1 ORDER BY id", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		tmp := models.UserURL{}
+		err = rows.Scan(&tmp.OriginalURL, &tmp.ShortURL)
+		if err != nil {
+			return nil, err
+		}
+		tmp.ShortURL = s.url + "/" + tmp.ShortURL
+
+		fmt.Println(tmp)
+		result = append(result, tmp)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
 	return result, nil
 }

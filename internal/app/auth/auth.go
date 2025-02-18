@@ -5,69 +5,54 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"github.com/google/uuid"
 	"net/http"
 )
 
-type Auth struct {
-	aesBlock cipher.Block
-	aeGSM    cipher.AEAD
-	nonce    []byte
-}
-
 var keyAuth = []byte("___allohomora___")
 
-func New() (*Auth, error) {
+const NameCookie = "token"
 
+var ErrorUserNotFound = errors.New("userID not found or invalid")
+
+func GenerateToken() string {
+	id := uuid.Must(uuid.NewRandom())
+	userID := id[:]
+	//userID := []byte("000007")
+	return string(userID)
+}
+
+func EncodeToken(token string) (string, error) {
+	userID := []byte(token)
 	aesBlock, err := aes.NewCipher(keyAuth)
 	if err != nil {
-		logger.Log.Debug("Error generateToken :", err)
-		return nil, err
+		logger.Log.Error("Error generateToken NewCipher :", err)
+		return "", err
 	}
+
 	aegsm, err := cipher.NewGCM(aesBlock)
 	if err != nil {
-		logger.Log.Debug("Error NewGCM :", err)
-		return nil, err
+		logger.Log.Error("Error NewGCM :", err)
+		return "", err
 	}
 
 	nonce, err := generateRandom(aegsm.NonceSize())
 	if err != nil {
-		logger.Log.Debug("Error generateRandom :", err)
-		return nil, err
+		logger.Log.Error("Error generateRandom :", err)
+		return "", err
 	}
 
-	return &Auth{aesBlock, aegsm, nonce}, nil
-}
-
-func (auth *Auth) GenerateToken() (string, error) {
-	id := uuid.Must(uuid.NewRandom())
-	userID := id[:]
-	//userID := []byte("000007")
-	fmt.Println("GenerateToken", string(userID))
-
-	dst := auth.aeGSM.Seal(nil, auth.nonce, userID, nil)
-	fmt.Printf("encripted: %x\n", dst)
-	fmt.Println(hex.EncodeToString(dst))
-
+	dst := aegsm.Seal(nonce, nonce, userID, nil)
 	return hex.EncodeToString(dst), nil
 }
-
-func (auth *Auth) DecodeCookie(cookie *http.Cookie) bool {
+func DecodeCookie(cookie *http.Cookie) (string, error) {
 	if cookie.Value == "" {
-		logger.Log.Error("cookie.Value  null")
-		return true
+		return "", fmt.Errorf("cookie.Value  null")
 	}
-	dst, err := hex.DecodeString(cookie.Value)
-	src2, err := auth.aeGSM.Open(nil, auth.nonce, dst, nil) // расшифровываем
-	if err != nil {
-		logger.Log.Error("Error decodeCookie  aegsm.Open:", src2)
-	}
-	fmt.Println(string(src2))
-	fmt.Printf("decripted: %s\n", src2)
-
-	return false
+	return DecryptToken(cookie.Value)
 }
 
 func generateRandom(size int) ([]byte, error) {
@@ -78,6 +63,40 @@ func generateRandom(size int) ([]byte, error) {
 	}
 	return b, nil
 }
-func (auth *Auth) Close() {
-	auth = nil
+
+func DecryptToken(encryptedToken string) (string, error) {
+
+	encryptedData, err := hex.DecodeString(encryptedToken)
+	if err != nil {
+		logger.Log.Error("Error decoding hex string:", err)
+		return "", err
+	}
+
+	aesBlock, err := aes.NewCipher(keyAuth)
+	if err != nil {
+		logger.Log.Error("Error creating AES cipher:", err)
+		return "", err
+	}
+
+	aegsm, err := cipher.NewGCM(aesBlock)
+	if err != nil {
+		logger.Log.Error("Error creating GCM:", err)
+		return "", err
+	}
+
+	nonceSize := aegsm.NonceSize()
+	if len(encryptedData) < nonceSize {
+		logger.Log.Error("Encrypted data too short")
+		return "", fmt.Errorf("encrypted data too short")
+	}
+
+	nonce, ciphertext := encryptedData[:nonceSize], encryptedData[nonceSize:]
+
+	plaintext, err := aegsm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		logger.Log.Error("Error decrypting data:", err)
+		return "", err
+	}
+
+	return hex.EncodeToString(plaintext), nil
 }

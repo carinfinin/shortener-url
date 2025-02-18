@@ -17,12 +17,12 @@ import (
 
 type Router struct {
 	Handle *chi.Mux
-	Store  storage.Repositories
+	Store  storage.Repository
 	URL    string
 	Config *config.Config
 }
 
-func ConfigureRouter(s storage.Repositories, config *config.Config) *Router {
+func ConfigureRouter(s storage.Repository, config *config.Config) *Router {
 
 	r := Router{
 		Handle: chi.NewRouter(),
@@ -34,13 +34,14 @@ func ConfigureRouter(s storage.Repositories, config *config.Config) *Router {
 	r.Handle.Use(middleware2.CompressGzipReader)
 	r.Handle.Use(middleware2.RequestLogger)
 	r.Handle.Use(middleware2.ResponseLogger)
-	//r.Handle.Use(middleware2.AuthMiddleWare)
+	r.Handle.Use(middleware2.AuthMiddleWare)
 
 	r.Handle.Post("/api/shorten", JSONHandle(r))
 	r.Handle.Post("/api/shorten/batch", JSONHandleBatch(r))
 	r.Handle.Post("/", CreateURL(r))
 	r.Handle.Get("/ping", PingDB(r))
 	r.Handle.Get("/{id}", GetURL(r))
+	r.Handle.Get("/api/user/urls", GetUserURLs(r))
 
 	return &r
 }
@@ -56,7 +57,7 @@ func CreateURL(r Router) http.HandlerFunc {
 
 		url := strings.TrimSpace(string(body))
 
-		xmlID, err := r.Store.AddURL(url)
+		xmlID, err := r.Store.AddURL(req.Context(), url)
 
 		newURL := r.URL + "/" + xmlID
 		res.Header().Set("Content-Type", "text/plain")
@@ -67,8 +68,8 @@ func CreateURL(r Router) http.HandlerFunc {
 				res.Write([]byte(newURL))
 				return
 			}
-			logger.Log.Error("CreateURL", err)
-			http.Error(res, "CreateURL", http.StatusInternalServerError)
+			logger.Log.Error("CreateURL error: ", err)
+			http.Error(res, "CreateURL error", http.StatusInternalServerError)
 			return
 		}
 
@@ -89,7 +90,7 @@ func GetURL(r Router) http.HandlerFunc {
 			return
 		}
 
-		url, err := r.Store.GetURL(id)
+		url, err := r.Store.GetURL(req.Context(), id)
 		if err != nil {
 			http.NotFound(res, req)
 			return
@@ -119,7 +120,7 @@ func JSONHandle(r Router) http.HandlerFunc {
 		}
 		req.URL = strings.TrimSpace(req.URL)
 
-		xmlID, err := r.Store.AddURL(req.URL)
+		xmlID, err := r.Store.AddURL(request.Context(), req.URL)
 		if err != nil && len(xmlID) == 0 {
 
 			logger.Log.Error("JSONHandle", err)
@@ -159,8 +160,6 @@ func JSONHandleBatch(r Router) http.HandlerFunc {
 
 		decoder := json.NewDecoder(request.Body)
 
-		logger.Log.Info("start decoder")
-
 		err := decoder.Decode(&data)
 		if err != nil {
 			logger.Log.Error("Decode error", err)
@@ -168,26 +167,17 @@ func JSONHandleBatch(r Router) http.HandlerFunc {
 			return
 		}
 
-		logger.Log.Info("start Decode data")
-		logger.Log.Info(data)
-
-		result, err := r.Store.AddURLBatch(data)
+		result, err := r.Store.AddURLBatch(request.Context(), data)
 		if err != nil {
 			logger.Log.Error("JSONHandleBatch AddURLBatch error", err)
 			http.Error(writer, "bad request", http.StatusBadRequest)
 			return
 		}
 
-		logger.Log.Info("result", result)
-
 		encoder := json.NewEncoder(writer)
-
-		logger.Log.Info("encoder")
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusCreated)
-
-		logger.Log.Info("JSONHandleBatch ответ сервера: ", result)
 
 		if err := encoder.Encode(result); err != nil {
 			logger.Log.Error("Encode error", err)
@@ -211,5 +201,28 @@ func PingDB(r Router) http.HandlerFunc {
 
 		writer.WriteHeader(http.StatusOK)
 
+	}
+}
+
+func GetUserURLs(r Router) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		logger.Log.Info("PingDB handler start")
+
+		encoder := json.NewEncoder(writer)
+
+		data, err := r.Store.GetUserURLs(request.Context())
+		if err != nil {
+			logger.Log.Info("GetUserURLs handler error: ", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusCreated)
+
+		if err := encoder.Encode(data); err != nil {
+			logger.Log.Error("Encode error", err)
+			http.Error(writer, "server error", http.StatusBadRequest)
+			return
+		}
 	}
 }

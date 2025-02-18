@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"math/rand"
@@ -9,15 +10,16 @@ import (
 
 var ErrDouble = errors.New("duplicate url")
 
-type Repositories interface {
-	AddURL(url string) (string, error)
-	GetURL(xmlID string) (string, error)
-	AddURLBatch([]models.RequestBatch) ([]models.ResponseBatch, error)
+type Repository interface {
+	AddURL(ctx context.Context, url string) (string, error)
+	GetURL(ctx context.Context, xmlID string) (string, error)
+	AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
+	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
 	Close() error
 }
 
 type ProducerInterface interface {
-	WriteLine(line *models.Line) error
+	WriteLine(line *models.AuthLine) error
 	Close() error
 }
 

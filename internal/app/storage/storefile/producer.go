@@ -21,7 +21,7 @@ func NewProducer(path string) (*Producer, error) {
 		encoder: json.NewEncoder(file),
 	}, nil
 }
-func (p *Producer) WriteLine(line *models.Line) error {
+func (p *Producer) WriteLine(line *models.AuthLine) error {
 	return p.encoder.Encode(line)
 }
 

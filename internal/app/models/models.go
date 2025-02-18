@@ -26,4 +26,11 @@ type ResponseBatch struct {
 type AuthLine struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
+	UserID      string `json:"user_id"`
+}
+
+type UserURL struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+	//UserID      string `json:"-"`
 }

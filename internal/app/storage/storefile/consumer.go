@@ -27,10 +27,10 @@ func (c *Consumer) Close() error {
 	return c.file.Close()
 }
 
-func (c *Consumer) ReadAll() (map[string]string, error) {
+func (c *Consumer) ReadAll() (map[string]models.AuthLine, error) {
 
-	result := map[string]string{}
-	line := models.Line{}
+	result := map[string]models.AuthLine{}
+	line := models.AuthLine{}
 	for {
 		err := c.decoder.Decode(&line)
 		if err != nil {
@@ -39,7 +39,7 @@ func (c *Consumer) ReadAll() (map[string]string, error) {
 			}
 			return nil, err
 		}
-		result[line.ID] = line.URL
+		result[line.ShortURL] = line
 	}
 
 	return result, nil

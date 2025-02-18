@@ -1,7 +1,9 @@
 package storefile
 
 import (
+	"context"
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"github.com/carinfinin/shortener-url/internal/app/models"
@@ -10,15 +12,14 @@ import (
 )
 
 type Store struct {
-	store    map[string]string
+	store    map[string]models.AuthLine
 	mu       sync.Mutex
 	path     string
 	producer storage.ProducerInterface
 	URL      string
 }
 
-// TODO нужно консьюмер наверное убрать
-func readAllinMemory(path string) (map[string]string, error) {
+func readAllinMemory(path string) (map[string]models.AuthLine, error) {
 	logger.Log.Info("coll function readAllinMemory")
 	consumer, err := NewConsumer(path)
 	if err != nil {
@@ -61,28 +62,33 @@ func (s *Store) generateAndExistXMLID(length int64) string {
 	}
 }
 
-func (s *Store) AddURL(url string) (string, error) {
+func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	s.mu.Lock()
 
+	defer s.mu.Unlock()
 	xmlID := s.generateAndExistXMLID(storage.LengthXMLID)
-	line := models.Line{ID: xmlID, URL: url}
+
+	userID, ok := ctx.Value(auth.NameCookie).(string)
+	if !ok {
+		return "", auth.ErrorUserNotFound
+	}
+	line := models.AuthLine{ShortURL: xmlID, OriginalURL: url, UserID: userID}
 
 	err := s.producer.WriteLine(&line)
 	if err != nil {
 		return "", err
 	}
-	s.store[xmlID] = url
+	s.store[xmlID] = line
 
-	s.mu.Unlock()
 	return xmlID, nil
 }
 
-func (s *Store) GetURL(xmlID string) (string, error) {
+func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	v, ok := s.store[xmlID]
 	if !ok {
-		return "", fmt.Errorf("ключ не найден")
+		return "", fmt.Errorf("key not found")
 	}
-	return v, nil
+	return v.OriginalURL, nil
 }
 
 func (s *Store) Close() error {
@@ -96,7 +102,7 @@ func (s *Store) Close() error {
 	return nil
 }
 
-func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch, error) {
+func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error) {
 	var result []models.ResponseBatch
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -108,13 +114,17 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 	}
 	for _, v := range data {
 
-		line := models.Line{ID: v.ID, URL: v.LongURL}
+		userID, ok := ctx.Value("token").(string)
+		if !ok {
+			return nil, auth.ErrorUserNotFound
+		}
+		line := models.AuthLine{ShortURL: v.ID, OriginalURL: v.LongURL, UserID: userID}
 
 		err := s.producer.WriteLine(&line)
 		if err != nil {
 			return nil, err
 		}
-		s.store[v.ID] = v.LongURL
+		s.store[v.ID] = line
 
 		var tmp = models.ResponseBatch{
 			ID:       v.ID,
@@ -125,4 +135,7 @@ func (s *Store) AddURLBatch(data []models.RequestBatch) ([]models.ResponseBatch,
 	}
 
 	return result, nil
+}
+func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
+	return nil, nil
 }
