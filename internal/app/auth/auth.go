@@ -14,9 +14,13 @@ import (
 
 var keyAuth = []byte("___allohomora___")
 
-const NameCookie = "token"
+type NameToken string
+
+const NameCookie NameToken = "token"
 
 var ErrorUserNotFound = errors.New("userID not found or invalid")
+
+type Token string
 
 func GenerateToken() string {
 	id := uuid.Must(uuid.NewRandom())
