@@ -13,7 +13,7 @@ func AuthMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 
 		var token string
-		c, err := request.Cookie(auth.NameCookie)
+		c, err := request.Cookie(string(auth.NameCookie))
 		if err != nil {
 			token = auth.GenerateToken()
 
@@ -23,7 +23,7 @@ func AuthMiddleWare(next http.Handler) http.Handler {
 			}
 
 			c := http.Cookie{
-				Name:    auth.NameCookie,
+				Name:    string(auth.NameCookie),
 				Value:   valueCookie,
 				Expires: time.Now().Add(time.Hour * 24),
 				Path:    "/",
