@@ -227,6 +227,5 @@ func (s *Store) DeleteUserURLs(ctx context.Context, data []string) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

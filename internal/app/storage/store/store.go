@@ -111,6 +111,5 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	return nil, nil
 }
 func (s *Store) DeleteUserURLs(ctx context.Context, data []string) error {
-
 	return nil
 }
