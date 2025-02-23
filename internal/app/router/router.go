@@ -1,7 +1,6 @@
 package router
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -83,8 +82,6 @@ func CreateURL(r Router) http.HandlerFunc {
 
 func GetURL(r Router) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
 
 		path := strings.Trim(req.URL.Path, "/")
 		parts := strings.Split(path, "/")
@@ -117,9 +114,6 @@ func GetURL(r Router) http.HandlerFunc {
 
 func JSONHandle(r Router) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
 		logger.Log.Info("start handle JSON")
 
 		var req models.Request
