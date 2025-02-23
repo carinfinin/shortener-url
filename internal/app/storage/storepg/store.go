@@ -205,22 +205,23 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	return result, nil
 }
 
-func (s *Store) DeleteUserURLs(ctx context.Context, data []string) error {
+func (s *Store) DeleteUserURLs(ctx context.Context, data models.DeleteURLUser) error {
 
-	userID, ok := ctx.Value(auth.NameCookie).(string)
-	if !ok {
-		return auth.ErrorUserNotFound
-	}
-	fmt.Println("token :", userID)
+	fmt.Println("data :", data)
+	//userID, ok := ctx.Value(auth.NameCookie).(string)
+	//if !ok {
+	//	return auth.ErrorUserNotFound
+	//}
+	//fmt.Println("token :", userID)
 
 	var values []string
 	var args []any
-	for i, v := range data {
+	for i, v := range data.Data {
 		values = append(values, fmt.Sprintf("$%d", i+1))
 		args = append(args, v)
 	}
 
-	args = append(args, userID)
+	args = append(args, data.USerID)
 
 	query := fmt.Sprintf("UPDATE urls SET is_deleted = TRUE WHERE xmlid IN (%v) AND user_id = %v", strings.Join(values, ", "), fmt.Sprintf("$%d", len(values)+1))
 	_, err := s.db.ExecContext(ctx, query, args...)

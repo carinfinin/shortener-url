@@ -1,9 +1,10 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
@@ -21,6 +22,7 @@ type Router struct {
 	Store  storage.Repository
 	URL    string
 	Config *config.Config
+	ch     chan models.DeleteURLUser
 }
 
 func ConfigureRouter(s storage.Repository, config *config.Config) *Router {
@@ -30,6 +32,7 @@ func ConfigureRouter(s storage.Repository, config *config.Config) *Router {
 		Store:  s,
 		URL:    config.URL,
 		Config: config,
+		ch:     make(chan models.DeleteURLUser),
 	}
 	r.Handle.Use(middleware2.CompressGzipWriter)
 	r.Handle.Use(middleware2.CompressGzipReader)
@@ -44,6 +47,8 @@ func ConfigureRouter(s storage.Repository, config *config.Config) *Router {
 	r.Handle.Get("/{id}", GetURL(r))
 	r.Handle.Get("/api/user/urls", GetUserURLs(r))
 	r.Handle.Delete("/api/user/urls", DeleteUserURLs(r))
+
+	go r.Worker(context.TODO())
 
 	return &r
 }
@@ -251,13 +256,31 @@ func DeleteUserURLs(r Router) http.HandlerFunc {
 			return
 		}
 
-		fmt.Println(data)
-		err = r.Store.DeleteUserURLs(request.Context(), data)
-		if err != nil {
-			logger.Log.Debug("DeleteUserURLs handler error: ", err)
+		userID, ok := request.Context().Value(auth.NameCookie).(string)
+		if ok {
+			var dw = models.DeleteURLUser{
+				Data:   data,
+				USerID: userID,
+			}
+			r.ch <- dw
+
 		}
+
+		/*
+			fmt.Println(data)
+			err = r.Store.DeleteUserURLs(request.Context(), data)
+			if err != nil {
+				logger.Log.Debug("DeleteUserURLs handler error: ", err)
+			}
+		*/
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusAccepted)
+	}
+}
+
+func (r *Router) Worker(ctx context.Context) {
+	for v := range r.ch {
+		r.Store.DeleteUserURLs(ctx, v)
 	}
 }

@@ -16,7 +16,7 @@ type Repository interface {
 	GetURL(ctx context.Context, xmlID string) (string, error)
 	AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
 	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
-	DeleteUserURLs(ctx context.Context, data []string) error
+	DeleteUserURLs(ctx context.Context, data models.DeleteURLUser) error
 	Close() error
 }
 
