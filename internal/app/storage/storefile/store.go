@@ -54,16 +54,17 @@ func New(cfg *config.Config) (*Store, error) {
 }
 
 func (s *Store) generateAndExistXMLID(length int64) string {
-	xmlID := storage.GenerateXMLID(length)
-	if _, ok := s.store[xmlID]; ok {
+	ID := storage.GenerateXMLID(length)
+	if _, ok := s.store[ID]; ok {
 		return s.generateAndExistXMLID(length + 1)
 	} else {
-		return xmlID
+		return ID
 	}
 }
 
 func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	defer s.mu.Unlock()
 	xmlID := s.generateAndExistXMLID(storage.LengthXMLID)
@@ -78,9 +79,18 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	for i, v := range s.store {
+		if v.OriginalURL == url {
+			logger.Log.Error(" AddURL error : дублирование URL")
+			return i, storage.ErrDouble
+		}
+	}
+
 	s.store[xmlID] = line
 
 	return xmlID, nil
+
 }
 
 func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
@@ -141,6 +151,9 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 }
 
 func (s *Store) DeleteUserURLs(ctx context.Context, data []string) error {
+	return nil
+}
 
+func (s *Store) Ping() error {
 	return nil
 }

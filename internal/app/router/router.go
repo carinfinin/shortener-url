@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
-	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
@@ -59,9 +59,9 @@ func CreateURL(r Router) http.HandlerFunc {
 
 		url := strings.TrimSpace(string(body))
 
-		xmlID, err := r.Store.AddURL(req.Context(), url)
+		urlID, err := r.Store.AddURL(req.Context(), url)
 
-		newURL := r.URL + "/" + xmlID
+		newURL := r.URL + "/" + urlID
 		res.Header().Set("Content-Type", "text/plain")
 
 		if err != nil {
@@ -70,8 +70,9 @@ func CreateURL(r Router) http.HandlerFunc {
 				res.Write([]byte(newURL))
 				return
 			}
-			logger.Log.Error("CreateURL error: ", err)
-			http.Error(res, "CreateURL error", http.StatusInternalServerError)
+
+			logger.Log.Error("CreateURL", err)
+			http.Error(res, "Create short URL failed", http.StatusInternalServerError)
 			return
 		}
 
@@ -82,6 +83,8 @@ func CreateURL(r Router) http.HandlerFunc {
 
 func GetURL(r Router) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
 		path := strings.Trim(req.URL.Path, "/")
 		parts := strings.Split(path, "/")
@@ -93,6 +96,7 @@ func GetURL(r Router) http.HandlerFunc {
 		}
 
 		url, err := r.Store.GetURL(req.Context(), id)
+
 		if err != nil {
 			if errors.Is(err, storage.ErrDeleteURL) {
 				http.Error(res, "URL is deleted", http.StatusGone)
@@ -113,6 +117,8 @@ func GetURL(r Router) http.HandlerFunc {
 
 func JSONHandle(r Router) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
 		logger.Log.Info("start handle JSON")
 
@@ -126,8 +132,8 @@ func JSONHandle(r Router) http.HandlerFunc {
 		}
 		req.URL = strings.TrimSpace(req.URL)
 
-		xmlID, err := r.Store.AddURL(request.Context(), req.URL)
-		if err != nil && len(xmlID) == 0 {
+		urlID, err := r.Store.AddURL(request.Context(), req.URL)
+		if err != nil && !errors.Is(err, storage.ErrDouble) {
 
 			logger.Log.Error("JSONHandle", err)
 			http.Error(writer, "error add url", http.StatusInternalServerError)
@@ -136,7 +142,7 @@ func JSONHandle(r Router) http.HandlerFunc {
 
 		var res models.Response
 
-		res.Result = r.URL + "/" + xmlID
+		res.Result = r.URL + "/" + urlID
 
 		encoder := json.NewEncoder(writer)
 
@@ -149,7 +155,7 @@ func JSONHandle(r Router) http.HandlerFunc {
 		}
 
 		if err := encoder.Encode(res); err != nil {
-			logger.Log.Error("Encode error", err)
+			logger.Log.Debug("Encode error", err)
 			http.Error(writer, "bad request", http.StatusBadRequest)
 			return
 		}
@@ -159,7 +165,6 @@ func JSONHandle(r Router) http.HandlerFunc {
 
 func JSONHandleBatch(r Router) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-
 		logger.Log.Info("start handle JSONHandleBatch")
 
 		var data = make([]models.RequestBatch, 0)
@@ -185,8 +190,10 @@ func JSONHandleBatch(r Router) http.HandlerFunc {
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusCreated)
 
+		logger.Log.Info("JSONHandleBatch ответ сервера: ", result)
+
 		if err := encoder.Encode(result); err != nil {
-			logger.Log.Error("Encode error", err)
+			logger.Log.Debug("Encode error", err)
 			http.Error(writer, "bad request", http.StatusBadRequest)
 			return
 		}
@@ -198,7 +205,7 @@ func PingDB(r Router) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		logger.Log.Info("PingDB handler start")
 
-		err := storepg.Ping(r.Config.DBPath)
+		err := r.Store.Ping()
 		if err != nil {
 			logger.Log.Info("PingDB handler error: ", err)
 			writer.WriteHeader(http.StatusInternalServerError)

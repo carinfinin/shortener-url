@@ -21,5 +21,5 @@ vendor/
 # IDEs directories
 .idea
 .vscode
-
 postgres/
+data.json

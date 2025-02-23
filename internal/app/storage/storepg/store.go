@@ -14,12 +14,10 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"strings"
-	"sync"
 	"time"
 )
 
 type Store struct {
-	mu  sync.Mutex
 	db  *sql.DB
 	url string
 }
@@ -31,23 +29,15 @@ func New(cfg *config.Config) (*Store, error) {
 		return nil, err
 	}
 	return &Store{
-		mu:  sync.Mutex{},
 		db:  db,
 		url: cfg.URL,
 	}, nil
 }
 
-func Ping(ps string) error {
-
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func (s *Store) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	if err = db.PingContext(ctx); err != nil {
+	if err := s.db.PingContext(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -57,9 +47,6 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	logger.Log.Info("start function AddURL")
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	xmlID := storage.GenerateXMLID(storage.LengthXMLID)
 	userID, ok := ctx.Value(auth.NameCookie).(string)
@@ -74,6 +61,7 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 
 			logger.Log.Error(" AddURL error : дублирование URL")
 			row := s.db.QueryRowContext(ctx, "SELECT xmlid FROM urls WHERE url = $1 AND is_deleted = FALSE;", url)
+
 			if err = row.Scan(&xmlID); err != nil {
 				return "", err
 			}
@@ -133,6 +121,7 @@ func (s *Store) CreateTableForDB(ctx context.Context) error {
 
 	return nil
 }
+
 func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error) {
 
 	var result []models.ResponseBatch
@@ -154,9 +143,8 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 	}
 
 	for _, v := range data {
-		s.mu.Lock()
+
 		_, err := stmt.Exec(v.LongURL, userID, v.ID, v.ID)
-		s.mu.Unlock()
 
 		if err != nil {
 			return nil, err
@@ -167,8 +155,8 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 			ShortURL: s.url + "/" + v.ID,
 		}
 		result = append(result, tmp)
-
 	}
+
 	tx.Commit()
 
 	return result, nil
