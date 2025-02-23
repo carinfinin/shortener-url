@@ -9,12 +9,14 @@ import (
 )
 
 var ErrDouble = errors.New("duplicate url")
+var ErrDeleteURL = errors.New("deleted url")
 
 type Repository interface {
 	AddURL(ctx context.Context, url string) (string, error)
 	GetURL(ctx context.Context, xmlID string) (string, error)
 	AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
 	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
+	DeleteUserURLs(ctx context.Context, data []string) error
 	Close() error
 }
 

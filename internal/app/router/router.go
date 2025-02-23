@@ -3,6 +3,7 @@ package router
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
@@ -42,6 +43,7 @@ func ConfigureRouter(s storage.Repository, config *config.Config) *Router {
 	r.Handle.Get("/ping", PingDB(r))
 	r.Handle.Get("/{id}", GetURL(r))
 	r.Handle.Get("/api/user/urls", GetUserURLs(r))
+	r.Handle.Delete("/api/user/urls", DeleteUserURLs(r))
 
 	return &r
 }
@@ -92,6 +94,10 @@ func GetURL(r Router) http.HandlerFunc {
 
 		url, err := r.Store.GetURL(req.Context(), id)
 		if err != nil {
+			if errors.Is(err, storage.ErrDeleteURL) {
+				http.Error(res, "URL is deleted", http.StatusGone)
+				return
+			}
 			http.NotFound(res, req)
 			return
 		}
@@ -206,7 +212,7 @@ func PingDB(r Router) http.HandlerFunc {
 
 func GetUserURLs(r Router) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		logger.Log.Info("PingDB handler start")
+		logger.Log.Info("GetUserURLs handler start")
 
 		encoder := json.NewEncoder(writer)
 
@@ -228,5 +234,30 @@ func GetUserURLs(r Router) http.HandlerFunc {
 			http.Error(writer, "server error", http.StatusBadRequest)
 			return
 		}
+	}
+}
+
+func DeleteUserURLs(r Router) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		logger.Log.Info("DeleteUserURLs handler start")
+
+		var data = make([]string, 0)
+		decoder := json.NewDecoder(request.Body)
+
+		err := decoder.Decode(&data)
+		if err != nil {
+			logger.Log.Error("Decode error", err)
+			http.Error(writer, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		fmt.Println(data)
+		err = r.Store.DeleteUserURLs(request.Context(), data)
+		if err != nil {
+			logger.Log.Debug("DeleteUserURLs handler error: ", err)
+		}
+
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(http.StatusAccepted)
 	}
 }

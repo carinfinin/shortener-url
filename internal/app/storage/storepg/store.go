@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"strings"
 	"sync"
 	"time"
 )
@@ -72,7 +73,7 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 		if errors.As(err, &errPG) && pgerrcode.IsIntegrityConstraintViolation(errPG.Code) {
 
 			logger.Log.Error(" AddURL error : дублирование URL")
-			row := s.db.QueryRowContext(ctx, "SELECT xmlid FROM urls WHERE url = $1;", url)
+			row := s.db.QueryRowContext(ctx, "SELECT xmlid FROM urls WHERE url = $1 AND is_deleted = FALSE;", url)
 			if err = row.Scan(&xmlID); err != nil {
 				return "", err
 			}
@@ -91,9 +92,10 @@ func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	defer cancel()
 
 	var URL string
+	var deleted bool
 
-	row := s.db.QueryRowContext(ctx, "SELECT url FROM urls WHERE xmlid = $1", xmlID)
-	err := row.Scan(&URL)
+	row := s.db.QueryRowContext(ctx, "SELECT url, is_deleted FROM urls WHERE xmlid = $1", xmlID)
+	err := row.Scan(&URL, &deleted)
 	if err != nil {
 		logger.Log.Error("GetURL scan error", err)
 		return "", err
@@ -102,6 +104,10 @@ func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	if err != nil {
 		logger.Log.Error("GetURL error", err)
 		return "", err
+	}
+	if deleted {
+		logger.Log.Error("deleted url")
+		return "", storage.ErrDeleteURL
 	}
 
 	return URL, nil
@@ -117,7 +123,8 @@ func (s *Store) CreateTableForDB(ctx context.Context) error {
 		"id SERIAL PRIMARY KEY,"+
 		"url VARCHAR(255) NOT NULL UNIQUE,"+
 		"user_id VARCHAR(255) NOT NULL,"+
-		"xmlid VARCHAR(50) NOT NULL UNIQUE)")
+		"xmlid VARCHAR(50) NOT NULL UNIQUE,"+
+		"is_deleted BOOLEAN NOT NULL DEFAULT FALSE)")
 	if err != nil {
 		logger.Log.Error("CreateTableForDB error", err)
 		return err
@@ -141,7 +148,7 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 		return nil, auth.ErrorUserNotFound
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO urls (url, user_id, xmlid) SELECT $1, $2, $3 WHERE NOT EXISTS (SELECT 1 FROM urls WHERE xmlid = $4)")
+	stmt, err := tx.Prepare("INSERT INTO urls (url, user_id, xmlid) SELECT $1, $2, $3 WHERE NOT EXISTS (SELECT 1 FROM urls WHERE xmlid = $4 AND is_deleted = FALSE)")
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +182,7 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 		return nil, auth.ErrorUserNotFound
 	}
 	fmt.Println("token :", userID)
-	rows, err := s.db.QueryContext(ctx, "SELECT url, xmlid FROM urls WHERE user_id = $1 ORDER BY id", userID)
+	rows, err := s.db.QueryContext(ctx, "SELECT url, xmlid FROM urls WHERE user_id = $1 AND is_deleted = FALSE ORDER BY id", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -196,4 +203,30 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func (s *Store) DeleteUserURLs(ctx context.Context, data []string) error {
+
+	userID, ok := ctx.Value(auth.NameCookie).(string)
+	if !ok {
+		return auth.ErrorUserNotFound
+	}
+	fmt.Println("token :", userID)
+
+	var values []string
+	var args []any
+	for i, v := range data {
+		values = append(values, fmt.Sprintf("$%d", i+1))
+		args = append(args, v)
+	}
+
+	args = append(args, userID)
+
+	query := fmt.Sprintf("UPDATE urls SET is_deleted = TRUE WHERE xmlid IN (%v) AND user_id = %v", strings.Join(values, ", "), fmt.Sprintf("$%d", len(values)+1))
+	_, err := s.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
