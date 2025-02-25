@@ -85,7 +85,7 @@ func (s *Service) Worker(ctx context.Context) {
 	var count = 500
 	data := []models.DeleteURLUser{}
 
-	timer := time.NewTicker(1 * time.Second)
+	timer := time.NewTicker(30 * time.Second)
 	for {
 		select {
 		case v := <-s.ch:
@@ -103,8 +103,8 @@ func (s *Service) Worker(ctx context.Context) {
 					data = []models.DeleteURLUser{}
 				}
 			}
-		default:
-			time.Sleep(1 * time.Second)
+			//default:
+			//	time.Sleep(1 * time.Second)
 		}
 
 	}
