@@ -82,10 +82,10 @@ func (s *Service) DeleteUserURLs(ctx context.Context, data []string) error {
 }
 
 func (s *Service) Worker(ctx context.Context) {
-	var count int = 500
+	var count = 500
 	data := []models.DeleteURLUser{}
 
-	timer := time.NewTicker(10 * time.Second)
+	timer := time.NewTicker(1 * time.Second)
 	for {
 		select {
 		case v := <-s.ch:
