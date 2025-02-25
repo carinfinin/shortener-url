@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/router"
+	"github.com/carinfinin/shortener-url/internal/app/service"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storefile"
@@ -46,7 +47,9 @@ func New(config *config.Config) (*Server, error) {
 	}
 
 	server.Addr = config.Addr
-	server.Router = router.ConfigureRouter(server.Store, config)
+	service := service.New(server.Store, config)
+
+	server.Router = router.ConfigureRouter(service, config)
 
 	return &server, nil
 }

@@ -35,6 +35,6 @@ type UserURL struct {
 	OriginalURL string `json:"original_url"`
 }
 type DeleteURLUser struct {
-	Data   []string
+	Data   string
 	USerID string
 }

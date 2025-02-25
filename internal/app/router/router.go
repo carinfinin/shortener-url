@@ -1,14 +1,13 @@
 package router
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
 	"github.com/carinfinin/shortener-url/internal/app/models"
+	"github.com/carinfinin/shortener-url/internal/app/service"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
 	"github.com/go-chi/chi/v5"
@@ -18,21 +17,19 @@ import (
 )
 
 type Router struct {
-	Handle *chi.Mux
-	Store  storage.Repository
-	URL    string
-	Config *config.Config
-	ch     chan models.DeleteURLUser
+	Handle  *chi.Mux
+	URL     string
+	Config  *config.Config
+	Service *service.Service
 }
 
-func ConfigureRouter(s storage.Repository, config *config.Config) *Router {
+func ConfigureRouter(s *service.Service, config *config.Config) *Router {
 
 	r := Router{
-		Handle: chi.NewRouter(),
-		Store:  s,
-		URL:    config.URL,
-		Config: config,
-		ch:     make(chan models.DeleteURLUser),
+		Handle:  chi.NewRouter(),
+		URL:     config.URL,
+		Config:  config,
+		Service: s,
 	}
 	r.Handle.Use(middleware2.CompressGzipWriter)
 	r.Handle.Use(middleware2.CompressGzipReader)
@@ -48,8 +45,6 @@ func ConfigureRouter(s storage.Repository, config *config.Config) *Router {
 	r.Handle.Get("/api/user/urls", GetUserURLs(r))
 	r.Handle.Delete("/api/user/urls", DeleteUserURLs(r))
 
-	go r.Worker(context.TODO())
-
 	return &r
 }
 
@@ -64,7 +59,7 @@ func CreateURL(r Router) http.HandlerFunc {
 
 		url := strings.TrimSpace(string(body))
 
-		xmlID, err := r.Store.AddURL(req.Context(), url)
+		xmlID, err := r.Service.CreateURL(req.Context(), url)
 
 		newURL := r.URL + "/" + xmlID
 		res.Header().Set("Content-Type", "text/plain")
@@ -97,7 +92,7 @@ func GetURL(r Router) http.HandlerFunc {
 			return
 		}
 
-		url, err := r.Store.GetURL(req.Context(), id)
+		url, err := r.Service.GetURL(req.Context(), id)
 		if err != nil {
 			if errors.Is(err, storage.ErrDeleteURL) {
 				http.Error(res, "URL is deleted", http.StatusGone)
@@ -129,11 +124,9 @@ func JSONHandle(r Router) http.HandlerFunc {
 			http.Error(writer, "bad request", http.StatusBadRequest)
 			return
 		}
-		req.URL = strings.TrimSpace(req.URL)
 
-		xmlID, err := r.Store.AddURL(request.Context(), req.URL)
+		xmlID, err := r.Service.JSONHandle(request.Context(), req.URL)
 		if err != nil && len(xmlID) == 0 {
-
 			logger.Log.Error("JSONHandle", err)
 			http.Error(writer, "error add url", http.StatusInternalServerError)
 			return
@@ -178,7 +171,7 @@ func JSONHandleBatch(r Router) http.HandlerFunc {
 			return
 		}
 
-		result, err := r.Store.AddURLBatch(request.Context(), data)
+		result, err := r.Service.JSONHandleBatch(request.Context(), data)
 		if err != nil {
 			logger.Log.Error("JSONHandleBatch AddURLBatch error", err)
 			http.Error(writer, "bad request", http.StatusBadRequest)
@@ -221,7 +214,7 @@ func GetUserURLs(r Router) http.HandlerFunc {
 
 		encoder := json.NewEncoder(writer)
 
-		data, err := r.Store.GetUserURLs(request.Context())
+		data, err := r.Service.GetUserURLs(request.Context())
 		if err != nil {
 			logger.Log.Info("GetUserURLs handler error: ", err)
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -255,32 +248,9 @@ func DeleteUserURLs(r Router) http.HandlerFunc {
 			http.Error(writer, "bad request", http.StatusBadRequest)
 			return
 		}
-
-		userID, ok := request.Context().Value(auth.NameCookie).(string)
-		if ok {
-			var dw = models.DeleteURLUser{
-				Data:   data,
-				USerID: userID,
-			}
-			r.ch <- dw
-
-		}
-
-		/*
-			fmt.Println(data)
-			err = r.Store.DeleteUserURLs(request.Context(), data)
-			if err != nil {
-				logger.Log.Debug("DeleteUserURLs handler error: ", err)
-			}
-		*/
+		r.Service.DeleteUserURLs(request.Context(), data)
 
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusAccepted)
-	}
-}
-
-func (r *Router) Worker(ctx context.Context) {
-	for v := range r.ch {
-		r.Store.DeleteUserURLs(ctx, v)
 	}
 }

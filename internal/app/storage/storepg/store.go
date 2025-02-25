@@ -13,7 +13,6 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"strings"
 	"sync"
 	"time"
 )
@@ -205,28 +204,31 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	return result, nil
 }
 
-func (s *Store) DeleteUserURLs(ctx context.Context, data models.DeleteURLUser) error {
+func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser) error {
 
 	fmt.Println("data :", data)
-	//userID, ok := ctx.Value(auth.NameCookie).(string)
-	//if !ok {
-	//	return auth.ErrorUserNotFound
-	//}
-	//fmt.Println("token :", userID)
 
-	var values []string
-	var args []any
-	for i, v := range data.Data {
-		values = append(values, fmt.Sprintf("$%d", i+1))
-		args = append(args, v)
-	}
-
-	args = append(args, data.USerID)
-
-	query := fmt.Sprintf("UPDATE urls SET is_deleted = TRUE WHERE xmlid IN (%v) AND user_id = %v", strings.Join(values, ", "), fmt.Sprintf("$%d", len(values)+1))
-	_, err := s.db.ExecContext(ctx, query, args...)
+	tx, err := s.db.Begin()
 	if err != nil {
+		logger.Log.Error("tx.Begin", err)
 		return err
 	}
-	return nil
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, "UPDATE urls SET is_deleted = TRUE WHERE xmlid = $1 AND user_id = $2")
+	if err != nil {
+		logger.Log.Error("tx.PrepareContext", err)
+		return err
+	}
+	defer stmt.Close()
+
+	for _, v := range data {
+		_, err := stmt.ExecContext(ctx, v.Data, v.USerID)
+		if err != nil {
+			logger.Log.Error("tx.ExecContext", err)
+
+			return err
+		}
+	}
+	return tx.Commit()
 }
