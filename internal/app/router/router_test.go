@@ -8,6 +8,7 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/models"
+	"github.com/carinfinin/shortener-url/internal/app/service"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,7 +52,8 @@ func TestCreateURL(t *testing.T) {
 			cfg := config.Config{URL: test.url}
 			s, err := store.New(&cfg)
 			require.NoError(t, err)
-			r := ConfigureRouter(s, &cfg)
+			service := service.New(s, &cfg)
+			r := ConfigureRouter(service, &cfg)
 			w := httptest.NewRecorder()
 
 			h := CreateURL(*r)
@@ -110,8 +112,9 @@ func TestGetURL(t *testing.T) {
 			require.NoError(t, err)
 
 			request := httptest.NewRequest(http.MethodGet, test.request+xmlID, nil)
+			service := service.New(s, &cfg)
+			r := ConfigureRouter(service, &cfg)
 
-			r := ConfigureRouter(s, &cfg)
 			w := httptest.NewRecorder()
 
 			h := GetURL(*r)
@@ -173,8 +176,8 @@ func TestJSONHandle(t *testing.T) {
 			token := auth.GenerateToken()
 			ctx := context.WithValue(request.Context(), auth.NameCookie, token)
 			newReq := request.WithContext(ctx)
-
-			r := ConfigureRouter(s, &cfg)
+			service := service.New(s, &cfg)
+			r := ConfigureRouter(service, &cfg)
 			hf := JSONHandle(*r)
 			hf(w, newReq)
 			result := w.Result()
