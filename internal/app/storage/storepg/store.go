@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
@@ -180,7 +179,7 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	if !ok {
 		return nil, auth.ErrorUserNotFound
 	}
-	fmt.Println("token :", userID)
+
 	rows, err := s.db.QueryContext(ctx, "SELECT url, xmlid FROM urls WHERE user_id = $1 AND is_deleted = FALSE ORDER BY id", userID)
 	if err != nil {
 		return nil, err
@@ -194,7 +193,6 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 		}
 		tmp.ShortURL = s.url + "/" + tmp.ShortURL
 
-		fmt.Println(tmp)
 		result = append(result, tmp)
 	}
 	err = rows.Err()
@@ -206,18 +204,16 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 
 func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser) error {
 
-	logger.Log.Info("data :", data)
-
 	tx, err := s.db.Begin()
 	if err != nil {
-		logger.Log.Error("tx.Begin", err)
+		logger.Log.Debug("tx.Begin", err)
 		return err
 	}
 	defer tx.Rollback()
 
 	stmt, err := tx.PrepareContext(ctx, "UPDATE urls SET is_deleted = TRUE WHERE xmlid = $1 AND user_id = $2")
 	if err != nil {
-		logger.Log.Error("tx.PrepareContext", err)
+		logger.Log.Debug("tx.PrepareContext", err)
 		return err
 	}
 	defer stmt.Close()
@@ -225,7 +221,7 @@ func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser)
 	for _, v := range data {
 		_, err := stmt.ExecContext(ctx, v.Data, v.USerID)
 		if err != nil {
-			logger.Log.Error("tx.ExecContext", err)
+			logger.Log.Debug("tx.ExecContext", err)
 
 			return err
 		}

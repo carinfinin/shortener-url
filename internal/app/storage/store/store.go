@@ -63,6 +63,12 @@ func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("key not found")
 	}
+
+	if v.IsDeleted {
+		logger.Log.Debug("deleted url")
+		return "", storage.ErrDeleteURL
+	}
+
 	return v.OriginalURL, nil
 }
 func (s *Store) Close() error {
@@ -82,7 +88,7 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 			return nil, fmt.Errorf("incorrect id in data request")
 		}
 	}
-	userID, ok := ctx.Value("token").(string)
+	userID, ok := ctx.Value(auth.NameCookie).(string)
 	if !ok {
 		return nil, auth.ErrorUserNotFound
 	}
@@ -108,8 +114,31 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 }
 
 func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
-	return nil, nil
+	result := []models.UserURL{}
+	userID, ok := ctx.Value(auth.NameCookie).(string)
+	if !ok {
+		return nil, auth.ErrorUserNotFound
+	}
+	for _, v := range s.store {
+		if v.UserID == userID {
+			tmp := models.UserURL{
+				s.URL + "/" + v.ShortURL,
+				v.OriginalURL,
+			}
+			result = append(result, tmp)
+		}
+	}
+
+	return result, nil
 }
 func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser) error {
+
+	for _, v := range data {
+
+		if line, ok := s.store[v.Data]; ok && line.UserID == v.USerID {
+			line.IsDeleted = true
+			s.store[v.Data] = line
+		}
+	}
 	return nil
 }

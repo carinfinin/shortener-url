@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
@@ -84,6 +85,8 @@ func (s *Service) DeleteUserURLs(ctx context.Context, data []string) error {
 func (s *Service) Worker(ctx context.Context) {
 	var count = 100
 	data := []models.DeleteURLUser{}
+
+	fmt.Println("worker")
 
 	timer := time.NewTicker(10 * time.Second)
 	for {
