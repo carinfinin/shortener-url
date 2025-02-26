@@ -99,7 +99,7 @@ func (s *Service) Worker(ctx context.Context) {
 				timer.Reset(10 * time.Second)
 			}
 		case <-timer.C:
-			if len(data) > 1 {
+			if len(data) > 0 {
 				err := s.Store.DeleteUserURLs(ctx, data)
 				if err != nil {
 					logger.Log.Error("worker error", err)
