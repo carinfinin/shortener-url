@@ -68,17 +68,19 @@ func (s *Service) DeleteUserURLs(ctx context.Context, data []string) error {
 
 	logger.Log.Debug("DeleteUserURLs service start")
 	userID, ok := ctx.Value(auth.NameCookie).(string)
-	if ok {
-		go func() {
-			for _, v := range data {
-				var dw = models.DeleteURLUser{
-					Data:   v,
-					USerID: userID,
-				}
-				s.ch <- dw
-			}
-		}()
+	if !ok {
+		logger.Log.Debug("DeleteUserURLs ErrorUserNotFound")
+		return auth.ErrorUserNotFound
 	}
+	go func() {
+		for _, v := range data {
+			var dw = models.DeleteURLUser{
+				Data:   v,
+				USerID: userID,
+			}
+			s.ch <- dw
+		}
+	}()
 	return nil
 }
 

@@ -22,7 +22,7 @@ type Repository interface {
 
 type ProducerInterface interface {
 	WriteLine(line *models.AuthLine) error
-	Close() error
+	Close(data map[string]models.AuthLine) error
 }
 
 // to do  обвить метод close

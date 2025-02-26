@@ -74,10 +74,10 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	}
 	line := models.AuthLine{ShortURL: xmlID, OriginalURL: url, UserID: userID}
 
-	err := s.producer.WriteLine(&line)
-	if err != nil {
-		return "", err
-	}
+	//err := s.producer.WriteLine(&line)
+	//if err != nil {
+	//	return "", err
+	//}
 	s.store[xmlID] = line
 
 	return xmlID, nil
@@ -88,11 +88,16 @@ func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("key not found")
 	}
+	if v.IsDeleted {
+		logger.Log.Debug("deleted url")
+		return "", storage.ErrDeleteURL
+	}
+
 	return v.OriginalURL, nil
 }
 
 func (s *Store) Close() error {
-	err := s.producer.Close()
+	err := s.producer.Close(s.store)
 	if err != nil {
 		logger.Log.Error("error closed store", err)
 		return err
@@ -114,16 +119,16 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 	}
 	for _, v := range data {
 
-		userID, ok := ctx.Value("token").(string)
+		userID, ok := ctx.Value(auth.NameCookie).(string)
 		if !ok {
 			return nil, auth.ErrorUserNotFound
 		}
 		line := models.AuthLine{ShortURL: v.ID, OriginalURL: v.LongURL, UserID: userID}
 
-		err := s.producer.WriteLine(&line)
-		if err != nil {
-			return nil, err
-		}
+		//err := s.producer.WriteLine(&line)
+		//if err != nil {
+		//	return nil, err
+		//}
 		s.store[v.ID] = line
 
 		var tmp = models.ResponseBatch{
