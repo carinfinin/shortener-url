@@ -122,8 +122,8 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	for _, v := range s.store {
 		if v.UserID == userID {
 			tmp := models.UserURL{
-				s.URL + "/" + v.ShortURL,
-				v.OriginalURL,
+				ShortURL:    s.URL + "/" + v.ShortURL,
+				OriginalURL: v.OriginalURL,
 			}
 			result = append(result, tmp)
 		}
