@@ -215,7 +215,7 @@ func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser)
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx, "UPDATE urls SET is_deleted = TRUE WHERE xmlid = $1 AND user_id = $2")
+	stmt, err := tx.PrepareContext(ctx, "UPDATE urls SET is_deleted = TRUE WHERE xmlid = $1")
 	if err != nil {
 		logger.Log.Error("tx.PrepareContext", err)
 		return err
@@ -223,7 +223,7 @@ func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser)
 	defer stmt.Close()
 
 	for _, v := range data {
-		_, err := stmt.ExecContext(ctx, v.Data, v.USerID)
+		_, err := stmt.ExecContext(ctx, v.Data)
 		if err != nil {
 			logger.Log.Error("tx.ExecContext", err)
 
