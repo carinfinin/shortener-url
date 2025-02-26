@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"net/http"
@@ -37,10 +36,6 @@ func AuthMiddleWare(next http.Handler) http.Handler {
 				writer.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-
-			fmt.Println("---------------")
-			fmt.Println(token)
-			fmt.Println("---------------")
 
 		}
 		ctx := context.WithValue(request.Context(), auth.NameCookie, token)
