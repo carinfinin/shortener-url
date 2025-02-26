@@ -9,6 +9,7 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
 	"strings"
+	"time"
 )
 
 type Service struct {
@@ -84,28 +85,27 @@ func (s *Service) Worker(ctx context.Context) {
 	var count = 100
 	data := []models.DeleteURLUser{}
 
-	//timer := time.NewTicker(10 * time.Millisecond)
+	timer := time.NewTicker(10 * time.Second)
 	for {
 		select {
 		case v := <-s.ch:
 			data = append(data, v)
 			if len(data) >= count {
 				err := s.Store.DeleteUserURLs(ctx, data)
-				if err == nil {
-					data = []models.DeleteURLUser{}
+				if err != nil {
+					logger.Log.Error("worker error", err)
 				}
+				data = data[:0]
+				timer.Reset(10 * time.Second)
 			}
-			//case <-timer.C:
-			//	if len(data) > 1 {
-			//		err := s.Store.DeleteUserURLs(ctx, data)
-			//		if err == nil {
-			//			data = []models.DeleteURLUser{}
-			//		}
-			//	}
-			//default:
-			//	time.Sleep(1 * time.Second)
+		case <-timer.C:
+			if len(data) > 1 {
+				err := s.Store.DeleteUserURLs(ctx, data)
+				if err != nil {
+					logger.Log.Error("worker error", err)
+				}
+				data = data[:0]
+			}
 		}
-
 	}
-
 }
