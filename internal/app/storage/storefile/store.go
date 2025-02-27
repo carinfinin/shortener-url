@@ -13,7 +13,7 @@ import (
 
 type Store struct {
 	store    map[string]models.AuthLine
-	mu       sync.Mutex
+	mu       sync.RWMutex
 	path     string
 	producer storage.ProducerInterface
 	URL      string
@@ -46,7 +46,7 @@ func New(cfg *config.Config) (*Store, error) {
 
 	return &Store{
 		store:    data,
-		mu:       sync.Mutex{},
+		mu:       sync.RWMutex{},
 		path:     cfg.FilePath,
 		producer: producer,
 		URL:      cfg.URL,
@@ -54,40 +54,47 @@ func New(cfg *config.Config) (*Store, error) {
 }
 
 func (s *Store) generateAndExistXMLID(length int64) string {
-	xmlID := storage.GenerateXMLID(length)
-	if _, ok := s.store[xmlID]; ok {
+	ID := storage.GenerateXMLID(length)
+	if _, ok := s.store[ID]; ok {
 		return s.generateAndExistXMLID(length + 1)
 	} else {
-		return xmlID
+		return ID
 	}
 }
 
 func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
-	s.mu.Lock()
 
-	defer s.mu.Unlock()
-	xmlID := s.generateAndExistXMLID(storage.LengthXMLID)
+	ID := s.generateAndExistXMLID(storage.LengthXMLID)
 
 	userID, ok := ctx.Value(auth.NameCookie).(string)
 	if !ok {
 		return "", auth.ErrorUserNotFound
 	}
-	line := models.AuthLine{ShortURL: xmlID, OriginalURL: url, UserID: userID}
 
-	//err := s.producer.WriteLine(&line)
-	//if err != nil {
-	//	return "", err
-	//}
-	s.store[xmlID] = line
+	for _, v := range s.store {
+		if v.OriginalURL == url {
+			return v.ShortURL, storage.ErrDouble
+		}
+	}
 
-	return xmlID, nil
+	line := models.AuthLine{ShortURL: ID, OriginalURL: url, UserID: userID}
+
+	s.mu.Lock()
+	s.store[ID] = line
+	s.mu.Unlock()
+
+	return ID, nil
 }
 
-func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
-	v, ok := s.store[xmlID]
+func (s *Store) GetURL(ctx context.Context, ID string) (string, error) {
+	s.mu.RLock()
+
+	v, ok := s.store[ID]
 	if !ok {
 		return "", fmt.Errorf("key not found")
 	}
+	s.mu.RUnlock()
+
 	if v.IsDeleted {
 		logger.Log.Debug("deleted url")
 		return "", storage.ErrDeleteURL
@@ -125,10 +132,6 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 		}
 		line := models.AuthLine{ShortURL: v.ID, OriginalURL: v.LongURL, UserID: userID}
 
-		//err := s.producer.WriteLine(&line)
-		//if err != nil {
-		//	return nil, err
-		//}
 		s.store[v.ID] = line
 
 		var tmp = models.ResponseBatch{
@@ -147,6 +150,8 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	if !ok {
 		return nil, auth.ErrorUserNotFound
 	}
+
+	s.mu.RLock()
 	for _, v := range s.store {
 		if v.UserID == userID {
 			tmp := models.UserURL{
@@ -156,6 +161,7 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 			result = append(result, tmp)
 		}
 	}
+	s.mu.RUnlock()
 
 	return result, nil
 }

@@ -13,7 +13,7 @@ import (
 
 type Store struct {
 	store map[string]models.AuthLine
-	mu    sync.Mutex
+	mu    sync.RWMutex
 	URL   string
 }
 
@@ -22,26 +22,29 @@ func New(cfg *config.Config) (*Store, error) {
 
 	return &Store{
 		store: map[string]models.AuthLine{},
-		mu:    sync.Mutex{},
+		mu:    sync.RWMutex{},
 		URL:   cfg.URL,
 	}, nil
 }
 
 func (s *Store) generateAndExistXMLID(length int64) string {
-	xmlID := storage.GenerateXMLID(length)
-	if _, ok := s.store[xmlID]; ok {
+	ID := storage.GenerateXMLID(length)
+	if _, ok := s.store[ID]; ok {
 		return s.generateAndExistXMLID(length + 1)
 	} else {
-		return xmlID
+		return ID
 	}
 }
 
 func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	for _, v := range s.store {
+		if v.OriginalURL == url {
+			return v.ShortURL, storage.ErrDouble
+		}
+	}
 
-	xmlID := s.generateAndExistXMLID(storage.LengthXMLID)
+	ID := s.generateAndExistXMLID(storage.LengthXMLID)
 
 	userID, ok := ctx.Value(auth.NameCookie).(string)
 	if !ok {
@@ -51,18 +54,22 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	line := models.AuthLine{
 		UserID:      userID,
 		OriginalURL: url,
-		ShortURL:    xmlID,
+		ShortURL:    ID,
 	}
-	s.store[xmlID] = line
+	s.mu.Lock()
+	s.store[ID] = line
+	s.mu.Unlock()
 
-	return xmlID, nil
+	return ID, nil
 }
 
-func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
-	v, ok := s.store[xmlID]
+func (s *Store) GetURL(ctx context.Context, ID string) (string, error) {
+	s.mu.RLock()
+	v, ok := s.store[ID]
 	if !ok {
 		return "", fmt.Errorf("key not found")
 	}
+	s.mu.RUnlock()
 
 	if v.IsDeleted {
 		logger.Log.Debug("deleted url")
@@ -119,6 +126,7 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	if !ok {
 		return nil, auth.ErrorUserNotFound
 	}
+	s.mu.RLock()
 	for _, v := range s.store {
 		if v.UserID == userID {
 			tmp := models.UserURL{
@@ -128,7 +136,7 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 			result = append(result, tmp)
 		}
 	}
-
+	s.mu.RUnlock()
 	return result, nil
 }
 func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser) error {

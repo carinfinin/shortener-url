@@ -12,12 +12,10 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"sync"
 	"time"
 )
 
 type Store struct {
-	mu  sync.Mutex
 	db  *sql.DB
 	url string
 }
@@ -29,7 +27,6 @@ func New(cfg *config.Config) (*Store, error) {
 		return nil, err
 	}
 	return &Store{
-		mu:  sync.Mutex{},
 		db:  db,
 		url: cfg.URL,
 	}, nil
@@ -56,35 +53,32 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	xmlID := storage.GenerateXMLID(storage.LengthXMLID)
+	ID := storage.GenerateXMLID(storage.LengthXMLID)
 	userID, ok := ctx.Value(auth.NameCookie).(string)
 	if !ok {
 		return "", auth.ErrorUserNotFound
 	}
-	//INSERT INTO urls (url, xmlid) SELECT 'dfgddfgd', '123' WHERE NOT EXISTS(SELECT 1 FROM urls WHERE xmlid = '123');
-	_, err := s.db.ExecContext(ctx, "INSERT INTO urls (url, user_id, xmlid) VALUES ($1, $2, $3);", url, userID, xmlID)
+
+	_, err := s.db.ExecContext(ctx, "INSERT INTO urls (url, user_id, xmlid) VALUES ($1, $2, $3);", url, userID, ID)
 	if err != nil {
 		var errPG *pgconn.PgError
 		if errors.As(err, &errPG) && pgerrcode.IsIntegrityConstraintViolation(errPG.Code) {
 
 			logger.Log.Error(" AddURL error : дублирование URL")
 			row := s.db.QueryRowContext(ctx, "SELECT xmlid FROM urls WHERE url = $1 AND is_deleted = FALSE;", url)
-			if err = row.Scan(&xmlID); err != nil {
+			if err = row.Scan(&ID); err != nil {
 				return "", err
 			}
-			return xmlID, storage.ErrDouble
+			return ID, storage.ErrDouble
 		}
 		logger.Log.Error(" AddURL error :", err)
 		return "", err
 	}
 
-	return xmlID, nil
+	return ID, nil
 }
 
-func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
+func (s *Store) GetURL(ctx context.Context, ID string) (string, error) {
 	logger.Log.Info("start function GetURL")
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -92,7 +86,7 @@ func (s *Store) GetURL(ctx context.Context, xmlID string) (string, error) {
 	var URL string
 	var deleted bool
 
-	row := s.db.QueryRowContext(ctx, "SELECT url, is_deleted FROM urls WHERE xmlid = $1", xmlID)
+	row := s.db.QueryRowContext(ctx, "SELECT url, is_deleted FROM urls WHERE xmlid = $1", ID)
 	err := row.Scan(&URL, &deleted)
 	if err != nil {
 		logger.Log.Error("GetURL scan error", err)
@@ -152,9 +146,7 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 	}
 
 	for _, v := range data {
-		s.mu.Lock()
 		_, err := stmt.Exec(v.LongURL, userID, v.ID, v.ID)
-		s.mu.Unlock()
 
 		if err != nil {
 			return nil, err

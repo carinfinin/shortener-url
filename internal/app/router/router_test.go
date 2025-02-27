@@ -56,8 +56,7 @@ func TestCreateURL(t *testing.T) {
 			r := ConfigureRouter(service, &cfg)
 			w := httptest.NewRecorder()
 
-			h := CreateURL(*r)
-			h(w, newReq)
+			r.CreateURL(w, newReq)
 
 			result := w.Result()
 
@@ -117,8 +116,7 @@ func TestGetURL(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			h := GetURL(*r)
-			h(w, request)
+			r.GetURL(w, request)
 
 			result := w.Result()
 			fmt.Println(result)
@@ -178,8 +176,7 @@ func TestJSONHandle(t *testing.T) {
 			newReq := request.WithContext(ctx)
 			service := service.New(s, &cfg)
 			r := ConfigureRouter(service, &cfg)
-			hf := JSONHandle(*r)
-			hf(w, newReq)
+			r.JSONHandle(w, newReq)
 			result := w.Result()
 			assert.Equal(t, test.statusCode, result.StatusCode)
 
