@@ -2,9 +2,13 @@ package router
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/carinfinin/shortener-url/internal/app/auth"
+	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/models"
+	"github.com/carinfinin/shortener-url/internal/app/service"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,13 +45,18 @@ func TestCreateURL(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodPost, test.request, strings.NewReader("https://yandex.ru"))
 
-			s, err := store.New()
+			token := auth.GenerateToken()
+			ctx := context.WithValue(request.Context(), auth.NameCookie, token)
+			newReq := request.WithContext(ctx)
+
+			cfg := config.Config{URL: test.url}
+			s, err := store.New(&cfg)
 			require.NoError(t, err)
-			r := ConfigureRouter(s, test.url)
+			service := service.New(s, &cfg)
+			r := ConfigureRouter(service, &cfg)
 			w := httptest.NewRecorder()
 
-			h := CreateURL(*r)
-			h(w, request)
+			r.CreateURL(w, newReq)
 
 			result := w.Result()
 
@@ -90,20 +99,24 @@ func TestGetURL(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			cfg := config.Config{URL: test.url}
 
-			s, err := store.New()
+			s, err := store.New(&cfg)
 			require.NoError(t, err)
 
-			xmlID, err := s.AddURL(test.data)
+			token := auth.GenerateToken()
+			ctx := context.WithValue(context.Background(), auth.NameCookie, token)
+
+			xmlID, err := s.AddURL(ctx, test.data)
 			require.NoError(t, err)
 
 			request := httptest.NewRequest(http.MethodGet, test.request+xmlID, nil)
+			service := service.New(s, &cfg)
+			r := ConfigureRouter(service, &cfg)
 
-			r := ConfigureRouter(s, test.url)
 			w := httptest.NewRecorder()
 
-			h := GetURL(*r)
-			h(w, request)
+			r.GetURL(w, request)
 
 			result := w.Result()
 			fmt.Println(result)
@@ -153,12 +166,17 @@ func TestJSONHandle(t *testing.T) {
 
 			request := httptest.NewRequest(http.MethodPost, test.request, buf)
 			w := httptest.NewRecorder()
-			s, err := store.New()
+			cfg := config.Config{URL: test.url}
+
+			s, err := store.New(&cfg)
 			require.NoError(t, err)
 
-			r := ConfigureRouter(s, test.url)
-			hf := JSONHandle(*r)
-			hf(w, request)
+			token := auth.GenerateToken()
+			ctx := context.WithValue(request.Context(), auth.NameCookie, token)
+			newReq := request.WithContext(ctx)
+			service := service.New(s, &cfg)
+			r := ConfigureRouter(service, &cfg)
+			r.JSONHandle(w, newReq)
 			result := w.Result()
 			assert.Equal(t, test.statusCode, result.StatusCode)
 
