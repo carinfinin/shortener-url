@@ -211,7 +211,7 @@ func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser)
 	defer stmt.Close()
 
 	for _, v := range data {
-		_, err := stmt.ExecContext(ctx, v.Data, v.USerID)
+		_, err = stmt.ExecContext(ctx, v.Data, v.USerID)
 		if err != nil {
 			logger.Log.Debug("tx.ExecContext", err)
 
