@@ -192,3 +192,49 @@ func TestJSONHandle(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkRouter_CreateURL(b *testing.B) {
+
+	body := strings.NewReader("https://yandex.ru")
+	request := httptest.NewRequest(http.MethodPost, "/", body)
+
+	token := auth.GenerateToken()
+	ctx := context.WithValue(request.Context(), auth.NameCookie, token)
+	newReq := request.WithContext(ctx)
+
+	cfg := config.Config{URL: "http://localhost:8080"}
+	s, _ := store.New(&cfg)
+
+	service := service.New(s, &cfg)
+	r := ConfigureRouter(service, &cfg)
+	w := httptest.NewRecorder()
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		body.Seek(0, 0)
+		r.CreateURL(w, newReq)
+	}
+
+}
+
+func BenchmarkRouter_GetURL(b *testing.B) {
+
+	cfg := config.Config{URL: "http://localhost:8080"}
+
+	s, _ := store.New(&cfg)
+	token := auth.GenerateToken()
+	ctx := context.WithValue(context.Background(), auth.NameCookie, token)
+
+	xmlID, _ := s.AddURL(ctx, "https://www.google.com")
+
+	request := httptest.NewRequest(http.MethodGet, "/"+xmlID, nil)
+	service := service.New(s, &cfg)
+	r := ConfigureRouter(service, &cfg)
+	w := httptest.NewRecorder()
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		r.GetURL(w, request)
+	}
+
+}

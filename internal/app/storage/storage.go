@@ -11,6 +11,7 @@ import (
 var ErrDouble = errors.New("duplicate url")
 var ErrDeleteURL = errors.New("deleted url")
 
+//go:generate mockgen -source=storage.go -destination=mocks/storage_mock.go -package=mocks
 type Repository interface {
 	AddURL(ctx context.Context, url string) (string, error)
 	GetURL(ctx context.Context, xmlID string) (string, error)
