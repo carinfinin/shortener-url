@@ -14,6 +14,7 @@ import (
 
 var keyAuth = []byte("___allohomora___")
 
+// NameToken type for context.
 type NameToken string
 
 const NameCookie NameToken = "token"
@@ -22,12 +23,14 @@ var ErrorUserNotFound = errors.New("userID not found or invalid")
 
 type Token string
 
+// GenerateToken generates a unique token.
 func GenerateToken() string {
 	id := uuid.Must(uuid.NewRandom())
 	userID := id[:]
 	return hex.EncodeToString(userID)
 }
 
+// EncodeToken decodes token.
 func EncodeToken(token string) (string, error) {
 	userID, err := hex.DecodeString(token)
 	if err != nil {

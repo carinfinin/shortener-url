@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// AuthMiddleWare checks and identifies the user.
 func AuthMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 

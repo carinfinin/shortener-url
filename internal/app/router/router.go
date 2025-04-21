@@ -146,6 +146,7 @@ func (r *Router) JSONHandle(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 }
+
 func (r *Router) JSONHandleBatch(writer http.ResponseWriter, request *http.Request) {
 	logger.Log.Info("start handle JSONHandleBatch")
 
