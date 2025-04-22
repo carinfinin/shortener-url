@@ -228,6 +228,7 @@ func (r *Router) JSONHandleBatch(writer http.ResponseWriter, request *http.Reque
 
 }
 
+// PingDB метод для проверки доступности хранилица.
 func (r *Router) PingDB(writer http.ResponseWriter, request *http.Request) {
 	logger.Log.Info("PingDB handler start")
 
