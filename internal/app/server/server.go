@@ -12,12 +12,14 @@ import (
 	"net/http"
 )
 
+// Server заускает сервер и содержит ссылку на хранилище.
 type Server struct {
 	Addr   string
 	Store  storage.Repository
 	Router *router.Router
 }
 
+// New конструктор для Server принимает кофиг.
 func New(config *config.Config) (*Server, error) {
 
 	var server Server
@@ -54,6 +56,7 @@ func New(config *config.Config) (*Server, error) {
 	return &server, nil
 }
 
+// Start запускает сервер.
 func (s *Server) Start() error {
 	return http.ListenAndServe(s.Addr, s.Router.Handle)
 }
