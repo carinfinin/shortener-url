@@ -12,6 +12,16 @@ import (
 	"time"
 )
 
+type IService interface {
+	CreateURL(ctx context.Context, url string) (string, error)
+	GetURL(ctx context.Context, id string) (string, error)
+	JSONHandle(ctx context.Context, url string) (string, error)
+	JSONHandleBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
+	PingDB(ctx context.Context) error
+	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
+	DeleteUserURLs(ctx context.Context, data []string) error
+}
+
 type Service struct {
 	store  storage.Repository
 	Config *config.Config
@@ -25,7 +35,7 @@ func New(store storage.Repository, cfg *config.Config) *Service {
 		ch:     make(chan models.DeleteURLUser),
 	}
 
-	go s.Worker(context.TODO())
+	go s.worker(context.TODO())
 	return s
 }
 
@@ -83,7 +93,7 @@ func (s *Service) DeleteUserURLs(ctx context.Context, data []string) error {
 	return nil
 }
 
-func (s *Service) Worker(ctx context.Context) {
+func (s *Service) worker(ctx context.Context) {
 	var count = 100
 	data := []models.DeleteURLUser{}
 
