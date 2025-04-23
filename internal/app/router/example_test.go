@@ -1,8 +1,10 @@
 package router_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
+	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/router"
 	"github.com/carinfinin/shortener-url/internal/app/service/mocks"
 	"github.com/stretchr/testify/mock"
@@ -31,4 +33,33 @@ func ExampleRouter_JSONHandle() {
 	// Output:
 	// 201
 	// application/json
+}
+
+func ExampleRouter_JSONHandleBatch() {
+	cfg := config.Config{URL: "http://localhost:8080"}
+
+	reqBody := `[{"correlation_id": "453","original_url": "https://example.com"}]`
+	resBody := `[{"correlation_id": "453","short_url": "http://localhost:8080/453"}]`
+	res := []models.ResponseBatch{}
+	req := []models.RequestBatch{}
+	json.Unmarshal([]byte(resBody), &res)
+	json.Unmarshal([]byte(reqBody), &req)
+	s := &mocks.IService{}
+	s.On("JSONHandleBatch", mock.Anything, req).Return(res, nil)
+	r := router.ConfigureRouter(s, &cfg)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", strings.NewReader(reqBody))
+	request.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	r.JSONHandleBatch(w, request)
+
+	fmt.Println(w.Code)
+	fmt.Println(w.Header().Get("Content-Type"))
+	fmt.Println(w.Body)
+
+	// Output:
+	// 201
+	// application/json
+	// [{"correlation_id":"453","short_url":"http://localhost:8080/453"}]
 }
