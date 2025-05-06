@@ -23,8 +23,6 @@ const NameCookie NameToken = "token"
 // ErrorUserNotFound error user not found.
 var ErrorUserNotFound = errors.New("userID not found or invalid")
 
-//type Token string
-
 // GenerateToken generates a unique token.
 func GenerateToken() string {
 	id := uuid.Must(uuid.NewRandom())
@@ -32,7 +30,7 @@ func GenerateToken() string {
 	return hex.EncodeToString(userID)
 }
 
-// EncodeToken decodes token.
+// EncodeToken encodes token.
 func EncodeToken(token string) (string, error) {
 	userID, err := hex.DecodeString(token)
 	if err != nil {

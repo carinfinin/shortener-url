@@ -4,6 +4,7 @@ import "testing"
 
 func BenchmarkEncodeToken(b *testing.B) {
 	token := GenerateToken()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		EncodeToken(token)
 	}

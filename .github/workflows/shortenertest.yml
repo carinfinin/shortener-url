@@ -478,3 +478,10 @@ jobs:
         run: |
           shortenertestbeta -test.v -test.run=^TestIteration18$ \
               -source-path=. \
+
+      - name: "Coverage"
+        run: |
+          go test ./... -coverprofile=coverage.out
+          go tool cover -func=coverage.out
+
+
