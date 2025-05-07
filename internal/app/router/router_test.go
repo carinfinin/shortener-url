@@ -75,6 +75,10 @@ func TestCreateURL(t *testing.T) {
 	}
 }
 
+func BenchmarkRouter_CreateURL(b *testing.B) {
+	
+}
+
 func TestGetURL(t *testing.T) {
 	type want struct {
 		contentType string
