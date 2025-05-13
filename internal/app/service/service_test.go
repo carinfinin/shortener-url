@@ -99,7 +99,10 @@ func TestJSONHandleBatch(t *testing.T) {
 	assert.NoError(t, err, err)
 
 	assert.Equal(t, result, []models.ResponseBatch{
-		{"123", "http://localhost:8080/123"},
+		{
+			ID:       "123",
+			ShortURL: "http://localhost:8080/123",
+		},
 	})
 
 }
