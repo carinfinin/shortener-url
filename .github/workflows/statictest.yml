@@ -34,4 +34,4 @@ jobs:
 
       - name: Run Staticlint
         run: |
-          go run cmd/staticlint/main.go
+          go run cmd/staticlint/main.go ./...
