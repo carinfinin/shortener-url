@@ -63,7 +63,7 @@ jobs:
       - name: Build server binary
         run: |
           cd cmd/shortener
-          go build -buildvcs=false -o -ldflags "-X main.buildVersion=v1.0.1 -X 'main.buildDate=$(date)' -X 'main.buildCommit=$(git rev-parse HEAD)'" shortener
+          go build -buildvcs=false -o shortener -ldflags "-X main.buildVersion=v1.0.1 -X 'main.buildDate=$(date)' -X 'main.buildCommit=$(git rev-parse HEAD)'"
 
       - name: "Code increment #1"
         if: |
