@@ -5,7 +5,6 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/router"
 	"github.com/carinfinin/shortener-url/internal/app/service"
-	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storefile"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
@@ -15,7 +14,7 @@ import (
 // Server заускает сервер и содержит ссылку на хранилище.
 type Server struct {
 	Addr   string
-	Store  storage.Repository
+	Store  service.Repository
 	Router *router.Router
 }
 

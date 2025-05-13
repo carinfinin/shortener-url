@@ -6,7 +6,6 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/router"
-	"github.com/carinfinin/shortener-url/internal/app/service/mocks"
 	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
@@ -16,8 +15,8 @@ import (
 func ExampleRouter_JSONHandle() {
 	cfg := config.Config{URL: "http://localhost:8080"}
 
-	s := &mocks.IService{}
-	s.On("JSONHandle", mock.Anything, "https://example.com").Return("3521", nil)
+	s := &router.MockService{}
+	s.On("CreateURL", mock.Anything, "https://example.com").Return("3521", nil)
 	r := router.ConfigureRouter(s, &cfg)
 
 	reqBody := `{"url": "https://example.com"}`
@@ -44,7 +43,7 @@ func ExampleRouter_JSONHandleBatch() {
 	req := []models.RequestBatch{}
 	json.Unmarshal([]byte(resBody), &res)
 	json.Unmarshal([]byte(reqBody), &req)
-	s := &mocks.IService{}
+	s := &router.MockService{}
 	s.On("JSONHandleBatch", mock.Anything, req).Return(res, nil)
 	r := router.ConfigureRouter(s, &cfg)
 

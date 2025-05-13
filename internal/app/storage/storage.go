@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"errors"
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"math/rand"
@@ -13,18 +12,6 @@ var ErrDouble = errors.New("duplicate url")
 
 // ErrDeleteURL ошибка возвращаемая при удалённом елементе.
 var ErrDeleteURL = errors.New("deleted url")
-
-// Repository интерфейс базы данных.
-//
-//go:generate mockgen -source=storage.go -destination=mocks/storage_mock.go -package=mocks
-type Repository interface {
-	AddURL(ctx context.Context, url string) (string, error)
-	GetURL(ctx context.Context, xmlID string) (string, error)
-	AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
-	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
-	DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser) error
-	Close() error
-}
 
 // ProducerInterface интерфейс для storefile.
 type ProducerInterface interface {

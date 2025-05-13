@@ -6,32 +6,33 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"github.com/carinfinin/shortener-url/internal/app/models"
-	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
 	"strings"
 	"time"
 )
 
-// IService сервисный слой реализует бизнес логику.
-type IService interface {
-	CreateURL(ctx context.Context, url string) (string, error)
-	GetURL(ctx context.Context, id string) (string, error)
-	JSONHandle(ctx context.Context, url string) (string, error)
-	JSONHandleBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
-	PingDB(ctx context.Context) error
+// Repository интерфейс базы данных.
+//
+
+//go:generate go run github.com/vektra/mockery/v2@v2.52.2 --name=Repository --filename=repositorymock_test.go --inpackage
+type Repository interface {
+	AddURL(ctx context.Context, url string) (string, error)
+	GetURL(ctx context.Context, xmlID string) (string, error)
+	AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
 	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
-	DeleteUserURLs(ctx context.Context, data []string) error
+	DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser) error
+	Close() error
 }
 
 // Service реализует интерфейс IService.
 type Service struct {
-	store  storage.Repository
+	store  Repository
 	Config *config.Config
 	ch     chan models.DeleteURLUser
 }
 
 // New конструктор для Service.
-func New(store storage.Repository, cfg *config.Config) *Service {
+func New(store Repository, cfg *config.Config) *Service {
 	s := &Service{
 		store:  store,
 		Config: cfg,
@@ -44,6 +45,7 @@ func New(store storage.Repository, cfg *config.Config) *Service {
 
 // CreateURL создаёт урл.
 func (s *Service) CreateURL(ctx context.Context, url string) (string, error) {
+	url = strings.TrimSpace(url)
 	return s.store.AddURL(ctx, url)
 }
 
@@ -52,14 +54,6 @@ func (s *Service) GetURL(ctx context.Context, id string) (string, error) {
 
 	return s.store.GetURL(ctx, id)
 
-}
-
-// JSONHandle создаёт урл принимая json.
-func (s *Service) JSONHandle(ctx context.Context, url string) (string, error) {
-
-	logger.Log.Info("start handle JSON")
-	url = strings.TrimSpace(url)
-	return s.store.AddURL(ctx, url)
 }
 
 // JSONHandleBatch создаёт пачку урлов принимая json.

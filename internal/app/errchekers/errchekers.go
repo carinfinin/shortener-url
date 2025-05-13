@@ -26,14 +26,23 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 				ast.Inspect(c, func(n ast.Node) bool {
 
-					if call, ok := n.(*ast.CallExpr); ok {
-						if s, ok := call.Fun.(*ast.SelectorExpr); ok {
-							if exp, ok := s.X.(*ast.Ident); ok {
-								if exp.Name == "os" && s.Sel.Name == "Exit" {
-									pass.Reportf(call.Pos(), "прямой вызов os.Exit() в функции main() запрещен")
-								}
-							}
-						}
+					call, ok := n.(*ast.CallExpr)
+					if !ok {
+						return true
+					}
+
+					s, ok := call.Fun.(*ast.SelectorExpr)
+					if !ok {
+						return true
+					}
+
+					exp, ok := s.X.(*ast.Ident)
+					if !ok {
+						return true
+					}
+
+					if exp.Name == "os" && s.Sel.Name == "Exit" {
+						pass.Reportf(call.Pos(), "прямой вызов os.Exit() в функции main() запрещен")
 					}
 					return true
 				})

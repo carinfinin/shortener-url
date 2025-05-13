@@ -1,13 +1,13 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
 	"github.com/carinfinin/shortener-url/internal/app/models"
-	"github.com/carinfinin/shortener-url/internal/app/service"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
 	"github.com/go-chi/chi/v5"
@@ -16,16 +16,28 @@ import (
 	"strings"
 )
 
+// Service сервисный слой реализует бизнес логику.
+//
+//go:generate go run github.com/vektra/mockery/v2@v2.52.2 --name=Service --filename=servicemock_test.go --inpackage
+type Service interface {
+	CreateURL(ctx context.Context, url string) (string, error)
+	GetURL(ctx context.Context, id string) (string, error)
+	JSONHandleBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
+	PingDB(ctx context.Context) error
+	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
+	DeleteUserURLs(ctx context.Context, data []string) error
+}
+
 // Router represents the HTTP router application
 type Router struct {
-	Handle  *chi.Mux         // chi router for handling HTTP requests
-	URL     string           // router base URL
-	Config  *config.Config   // application configuration
-	Service service.IService // service layer with business logic
+	Handle  *chi.Mux       // chi router for handling HTTP requests
+	URL     string         // router base URL
+	Config  *config.Config // application configuration
+	Service Service        // service layer with business logic
 }
 
 // ConfigureRouter constructor for type Router accepts *service.Service *config.Config.
-func ConfigureRouter(s service.IService, config *config.Config) *Router {
+func ConfigureRouter(s Service, config *config.Config) *Router {
 
 	r := Router{
 		Handle:  chi.NewRouter(),
@@ -154,7 +166,7 @@ func (r *Router) JSONHandle(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	xmlID, err := r.Service.JSONHandle(request.Context(), req.URL)
+	xmlID, err := r.Service.CreateURL(request.Context(), req.URL)
 	if err != nil && len(xmlID) == 0 {
 		logger.Log.Error("JSONHandle", err)
 		http.Error(writer, "error add url", http.StatusInternalServerError)

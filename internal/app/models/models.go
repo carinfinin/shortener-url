@@ -1,11 +1,11 @@
 package models
 
-// Request структура для отбработки json реквеста.
+// Request структура для обработки json реквеста.
 type Request struct {
 	URL string `json:"url"`
 }
 
-// Response структура для отбработки json ответа.
+// Response структура для обработки json ответа.
 type Response struct {
 	Result string `json:"result"`
 }
@@ -21,7 +21,7 @@ type RequestBatch struct {
 	LongURL string `json:"original_url"`
 }
 
-// RequestBatch структупа для обработки ответа json.
+// ResponseBatch структура для обработки ответа json.
 type ResponseBatch struct {
 	ID       string `json:"correlation_id"`
 	ShortURL string `json:"short_url"`
@@ -35,13 +35,13 @@ type AuthLine struct {
 	IsDeleted   bool   `json:"is_deleted"`
 }
 
-// UserURL структыра для обработки ответа получения урл пользователя.
+// UserURL структура для обработки ответа получения урл пользователя.
 type UserURL struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
-// DeleteURLUser структыра для обработки удаления урлов пользователя.
+// DeleteURLUser структура для обработки удаления урлов пользователя.
 type DeleteURLUser struct {
 	Data   string
 	USerID string
