@@ -135,7 +135,6 @@ func (s *Service) worker(ctx context.Context) {
 			if err != nil {
 				logger.Log.Error("worker error", err)
 			}
-			data = data[:0]
 			return
 		}
 	}
