@@ -129,14 +129,8 @@ func TestService_GetUserURLs(t *testing.T) {
 
 func TestService_DeleteUserURLs(t *testing.T) {
 	r := MockRepository{}
-	var dr = []models.DeleteURLUser{
-		{
-			Data:   "practicum.ru",
-			USerID: "123",
-		},
-	}
 	var d = []string{"practicum.ru"}
-	r.On("DeleteUserURLs", mock.Anything, dr).Return(nil)
+	r.On("DeleteUserURLs", mock.Anything, mock.Anything).Return(nil)
 	cfg := config.Config{}
 	s := New(&r, &cfg)
 
