@@ -138,17 +138,14 @@ func TestService_DeleteUserURLs(t *testing.T) {
 	err := s.DeleteUserURLs(ctx, d)
 	assert.NoError(t, err, err)
 
+	<-ctx.Done()
+	cancel()
+	s.close()
+
 	select {
-	case <-ctx.Done():
-		cancel()
-		s.close()
-
-		select {
-		case <-s.ch:
-			t.Error("Канал не пуст")
-		default:
-			fmt.Println("Канал пуст")
-		}
+	case <-s.ch:
+		t.Error("Канал не пуст")
+	default:
+		fmt.Println("Канал пуст")
 	}
-
 }

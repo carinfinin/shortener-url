@@ -32,6 +32,10 @@ type Service struct {
 	close  context.CancelFunc
 }
 
+func (s *Service) Close() {
+	s.close()
+}
+
 // New конструктор для Service.
 func New(store Repository, cfg *config.Config) *Service {
 	s := &Service{
