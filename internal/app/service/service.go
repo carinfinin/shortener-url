@@ -32,6 +32,7 @@ type Service struct {
 	close  context.CancelFunc
 }
 
+// Close закрытие сервиса
 func (s *Service) Close() {
 	s.close()
 }
