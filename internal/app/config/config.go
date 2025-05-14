@@ -12,6 +12,7 @@ type Config struct {
 	LogLevel string
 	FilePath string
 	DBPath   string
+	TLS      bool
 }
 
 // New constructor for type Config.
@@ -25,6 +26,7 @@ func New() *Config {
 	flag.StringVar(&config.FilePath, "f", "", "file path")
 	/* host=localhost user=user password=password dbname=shortener_url sslmode=disable */
 	flag.StringVar(&config.DBPath, "d", "", "db path")
+	flag.BoolVar(&config.TLS, "s", false, "tls")
 	flag.Parse()
 
 	if envServerAddr := os.Getenv("SERVER_ADDRESS"); envServerAddr != "" {
@@ -37,7 +39,10 @@ func New() *Config {
 		config.FilePath = envFilePath
 	}
 	if DBPath := os.Getenv("DATABASE_DSN"); DBPath != "" {
-		config.FilePath = DBPath
+		config.DBPath = DBPath
+	}
+	if tls := os.Getenv("ENABLE_HTTPS"); tls != "" {
+		config.TLS = tls == "true"
 	}
 	return &config
 }
