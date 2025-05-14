@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/models"
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 func TestService_CreateURLPositive(t *testing.T) {
@@ -104,5 +106,55 @@ func TestJSONHandleBatch(t *testing.T) {
 			ShortURL: "http://localhost:8080/123",
 		},
 	})
+}
+
+func TestService_GetUserURLs(t *testing.T) {
+
+	t.Run("positive", func(t *testing.T) {
+		r := MockRepository{}
+		var data = []models.UserURL{
+			{
+				ShortURL:    "123",
+				OriginalURL: "practicum.ru",
+			},
+		}
+		r.On("GetUserURLs", mock.Anything).Return(data, nil)
+		cfg := config.Config{}
+		s := New(&r, &cfg)
+		res, err := s.GetUserURLs(context.Background())
+		assert.NoError(t, err, err)
+		assert.Equal(t, res, data)
+	})
+}
+
+func TestService_DeleteUserURLs(t *testing.T) {
+	r := MockRepository{}
+	var dr = []models.DeleteURLUser{
+		{
+			Data:   "practicum.ru",
+			USerID: "123",
+		},
+	}
+	var d = []string{"practicum.ru"}
+	r.On("DeleteUserURLs", mock.Anything, dr).Return(nil)
+	cfg := config.Config{}
+	s := New(&r, &cfg)
+
+	ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), auth.NameCookie, "123"), 15*time.Second)
+	err := s.DeleteUserURLs(ctx, d)
+	assert.NoError(t, err, err)
+
+	select {
+	case <-ctx.Done():
+		cancel()
+		s.close()
+
+		select {
+		case <-s.ch:
+			t.Error("Канал не пуст")
+		default:
+			fmt.Println("Канал пуст")
+		}
+	}
 
 }

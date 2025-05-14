@@ -1,5 +1,5 @@
 package errchekers
 
-//func TestMyAnalyzer(t *testing.T) {
+//func TestErrCheckAnalyzer(t *testing.T) {
 //	analysistest.Run(t, analysistest.TestData(), ErrCheckAnalyzer, "./...")
 //}

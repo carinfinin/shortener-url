@@ -29,6 +29,7 @@ type Service struct {
 	store  Repository
 	Config *config.Config
 	ch     chan models.DeleteURLUser
+	close  context.CancelFunc
 }
 
 // New конструктор для Service.
@@ -39,7 +40,10 @@ func New(store Repository, cfg *config.Config) *Service {
 		ch:     make(chan models.DeleteURLUser),
 	}
 
-	go s.worker(context.TODO())
+	ctx, cancel := context.WithCancel(context.Background())
+	s.close = cancel
+
+	go s.worker(ctx)
 	return s
 }
 
@@ -122,6 +126,13 @@ func (s *Service) worker(ctx context.Context) {
 				}
 				data = data[:0]
 			}
+		case <-ctx.Done():
+			err := s.store.DeleteUserURLs(ctx, data)
+			if err != nil {
+				logger.Log.Error("worker error", err)
+			}
+			data = data[:0]
+			return
 		}
 	}
 }
