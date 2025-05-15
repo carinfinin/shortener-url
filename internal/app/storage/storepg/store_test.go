@@ -1,4 +1,4 @@
-package storefile
+package storepg
 
 import (
 	"context"
