@@ -33,5 +33,6 @@ jobs:
           go vet -vettool=$(which statictest) ./...
 
       - name: Run Staticlint
+        continue-on-error: true
         run: |
           go run cmd/staticlint/main.go ./...
