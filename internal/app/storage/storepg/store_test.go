@@ -8,7 +8,6 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/models"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/stretchr/testify/assert"
-	"os"
 	"testing"
 )
 
@@ -35,7 +34,7 @@ func TestStore_AddURL(t *testing.T) {
 	}
 
 	cfg := &config.Config{}
-	cfg.FilePath = "test.json"
+	cfg.DBPath = "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable"
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -70,13 +69,11 @@ func TestStore_AddURL(t *testing.T) {
 		})
 	}
 
-	os.Remove("test.json")
-
 }
 
 func TestAddURLBatchGet(t *testing.T) {
 	cfg := &config.Config{}
-	cfg.FilePath = "test.json"
+	cfg.DBPath = "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable"
 
 	s, err := New(cfg)
 	assert.NoError(t, err, err)
@@ -112,5 +109,4 @@ func TestAddURLBatchGet(t *testing.T) {
 	}
 	err = s.Close()
 	assert.NoError(t, err, err)
-	os.Remove("test.json")
 }
