@@ -49,7 +49,7 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	ID := s.generateAndExistXMLID(storage.LengthXMLID)
 
 	userID, ok := ctx.Value(auth.NameCookie).(string)
-	if !ok {
+	if !ok || userID == "" {
 		return "", auth.ErrorUserNotFound
 	}
 
