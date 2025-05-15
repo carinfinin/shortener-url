@@ -33,11 +33,9 @@ func TestStore_AddURL(t *testing.T) {
 		},
 	}
 
-	cfg := config.New()
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
+			cfg := &config.Config{}
 			s, err := New(cfg)
 			assert.NoError(t, err, err)
 
@@ -71,7 +69,7 @@ func TestStore_AddURL(t *testing.T) {
 }
 
 func TestAddURLBatchGet(t *testing.T) {
-	cfg := config.New()
+	cfg := &config.Config{}
 
 	s, err := New(cfg)
 	assert.NoError(t, err, err)

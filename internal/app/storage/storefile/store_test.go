@@ -32,7 +32,7 @@ func TestStore_AddURL(t *testing.T) {
 		},
 	}
 
-	cfg := config.New()
+	cfg := &config.Config{}
 	cfg.FilePath = "test.json"
 
 	for _, tt := range tests {
