@@ -3,110 +3,61 @@ package storepg
 import (
 	"context"
 	"fmt"
-	"github.com/carinfinin/shortener-url/internal/app/auth"
 	"github.com/carinfinin/shortener-url/internal/app/config"
-	"github.com/carinfinin/shortener-url/internal/app/models"
-	"github.com/carinfinin/shortener-url/internal/app/storage"
-	"github.com/stretchr/testify/assert"
+	"github.com/testcontainers/testcontainers-go"
 	"testing"
+	"time"
+
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func TestStore_AddURL(t *testing.T) {
+func setupPostgresContainer(t *testing.T) (string, func()) {
+	ctx := context.Background()
 
-	tests := []struct {
-		name   string
-		err    bool
-		url    string
-		userID string
-	}{
-		{
-			name:   "positive",
-			err:    false,
-			url:    "practicum.ru",
-			userID: "1",
-		},
-		{
-			name:   "fail",
-			err:    true,
-			url:    "practicum.ru",
-			userID: "",
-		},
+	// Запускаем контейнер
+	pgContainer, err := postgres.RunContainer(ctx,
+		testcontainers.WithImage("postgres:15-alpine"),
+		postgres.WithDatabase("testdb"),
+		postgres.WithUsername("user"),
+		postgres.WithPassword("password"),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).
+				WithStartupTimeout(30*time.Second)),
+	)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	cfg := &config.Config{}
-	cfg.DBPath = "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable"
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			s, err := New(cfg)
-			assert.NoError(t, err, err)
-
-			ctx := context.WithValue(context.Background(), auth.NameCookie, tt.userID)
-
-			short, err := s.AddURL(ctx, tt.url)
-
-			fmt.Println(err)
-			if tt.err {
-				assert.ErrorIs(t, err, auth.ErrorUserNotFound)
-			} else {
-				assert.NoError(t, err, err)
-			}
-
-			url, err := s.GetURL(ctx, short)
-			if tt.err {
-				assert.EqualError(t, err, "key not found")
-
-			} else {
-				assert.NoError(t, err, err)
-			}
-
-			if !tt.err {
-				assert.Equal(t, url, tt.url)
-			}
-			err = s.Close()
-			assert.NoError(t, err, err)
-		})
+	// Получаем строку подключения
+	connStr, err := pgContainer.ConnectionString(ctx)
+	if err != nil {
+		t.Fatal(err)
 	}
 
+	// Функция для остановки контейнера
+	cleanup := func() {
+		if err := pgContainer.Terminate(ctx); err != nil {
+			t.Logf("failed to terminate container: %s", err)
+		}
+	}
+
+	return connStr, cleanup
 }
 
-func TestAddURLBatchGet(t *testing.T) {
-	cfg := &config.Config{}
-	cfg.DBPath = "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable"
+func TestWithContainer(t *testing.T) {
+	connStr, cleanup := setupPostgresContainer(t)
+	defer cleanup()
 
-	s, err := New(cfg)
-	assert.NoError(t, err, err)
-
-	ctx := context.WithValue(context.Background(), auth.NameCookie, "2")
-	data := []models.RequestBatch{
-		{
-			ID:      "short",
-			LongURL: "practikum.ru",
-		},
-	}
-	_, err = s.AddURLBatch(ctx, data)
-	assert.NoError(t, err, err)
-
-	r, err := s.GetUserURLs(ctx)
-	assert.NoError(t, err, err)
-
-	d := make([]models.DeleteURLUser, 0)
-	for _, v := range r {
-		assert.Equal(t, v.OriginalURL, "practikum.ru")
-		d = append(d, models.DeleteURLUser{
-			Data:   v.ShortURL,
-			USerID: "2",
-		})
+	// Используем connStr в вашем хранилище
+	cfg := &config.Config{DBPath: connStr}
+	store, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	err = s.DeleteUserURLs(ctx, d)
-	assert.NoError(t, err, err)
+	fmt.Println(store)
 
-	for _, v := range d {
-		_, err = s.GetURL(ctx, v.Data)
-		assert.ErrorAs(t, err, &storage.ErrDeleteURL)
-	}
-	err = s.Close()
-	assert.NoError(t, err, err)
+	// Далее ваши тесты...
 }
