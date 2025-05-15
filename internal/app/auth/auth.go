@@ -14,20 +14,23 @@ import (
 
 var keyAuth = []byte("___allohomora___")
 
+// NameToken type for context.
 type NameToken string
 
+// NameCookie global constant.
 const NameCookie NameToken = "token"
 
+// ErrorUserNotFound error user not found.
 var ErrorUserNotFound = errors.New("userID not found or invalid")
 
-type Token string
-
+// GenerateToken generates a unique token.
 func GenerateToken() string {
 	id := uuid.Must(uuid.NewRandom())
 	userID := id[:]
 	return hex.EncodeToString(userID)
 }
 
+// EncodeToken encodes token.
 func EncodeToken(token string) (string, error) {
 	userID, err := hex.DecodeString(token)
 	if err != nil {
@@ -54,6 +57,8 @@ func EncodeToken(token string) (string, error) {
 	dst := aegsm.Seal(nonce, nonce, userID, nil)
 	return hex.EncodeToString(dst), nil
 }
+
+// DecodeCookie decode cookies
 func DecodeCookie(cookie *http.Cookie) (string, error) {
 	if cookie.Value == "" {
 		return "", fmt.Errorf("cookie.Value  null")
@@ -70,6 +75,7 @@ func generateRandom(size int) ([]byte, error) {
 	return b, nil
 }
 
+// DecryptToken decodes token
 func DecryptToken(encryptedToken string) (string, error) {
 
 	encryptedData, err := hex.DecodeString(encryptedToken)

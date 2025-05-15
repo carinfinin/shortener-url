@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// Config contains application settings.
 type Config struct {
 	Addr     string
 	URL      string
@@ -13,6 +14,7 @@ type Config struct {
 	DBPath   string
 }
 
+// New constructor for type Config.
 func New() *Config {
 	var config Config
 

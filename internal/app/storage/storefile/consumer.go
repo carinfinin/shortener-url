@@ -8,11 +8,13 @@ import (
 	"os"
 )
 
+// Consumer читает файл и декодирвет json.
 type Consumer struct {
 	file    *os.File
 	decoder *json.Decoder
 }
 
+// NewConsumer конструктор для Consumer.
 func NewConsumer(path string) (*Consumer, error) {
 	file, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -23,10 +25,13 @@ func NewConsumer(path string) (*Consumer, error) {
 		decoder: json.NewDecoder(file),
 	}, nil
 }
+
+// Close закрывает файл.
 func (c *Consumer) Close() error {
 	return c.file.Close()
 }
 
+// ReadAll читает файл.
 func (c *Consumer) ReadAll() (map[string]models.AuthLine, error) {
 
 	result := map[string]models.AuthLine{}

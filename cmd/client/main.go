@@ -25,7 +25,7 @@ func main() {
 
 	// добавляем HTTP-клиент
 	client := &http.Client{
-		//redirect
+		// redirect
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			fmt.Println(req.URL)
 			return nil

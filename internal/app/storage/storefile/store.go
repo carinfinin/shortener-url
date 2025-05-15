@@ -11,6 +11,7 @@ import (
 	"sync"
 )
 
+// Store хранилище в файлле реализует интерфейс Repository.
 type Store struct {
 	store    map[string]models.AuthLine
 	mu       sync.RWMutex
@@ -30,6 +31,7 @@ func readAllinMemory(path string) (map[string]models.AuthLine, error) {
 	return consumer.ReadAll()
 }
 
+// New конструктор для  Store.
 func New(cfg *config.Config) (*Store, error) {
 	logger.Log.Info("start store in file")
 
@@ -62,6 +64,7 @@ func (s *Store) generateAndExistXMLID(length int64) string {
 	}
 }
 
+// AddURL записывает в хранилище урл.
 func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 
 	ID := s.generateAndExistXMLID(storage.LengthXMLID)
@@ -86,10 +89,11 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	return ID, nil
 }
 
-func (s *Store) GetURL(ctx context.Context, ID string) (string, error) {
+// GetURL получает из хранилища урл.
+func (s *Store) GetURL(ctx context.Context, id string) (string, error) {
 	s.mu.RLock()
 
-	v, ok := s.store[ID]
+	v, ok := s.store[id]
 	if !ok {
 		return "", fmt.Errorf("key not found")
 	}
@@ -103,6 +107,7 @@ func (s *Store) GetURL(ctx context.Context, ID string) (string, error) {
 	return v.OriginalURL, nil
 }
 
+// Close закрывает хранилище.
 func (s *Store) Close() error {
 	err := s.producer.Close(s.store)
 	if err != nil {
@@ -114,6 +119,7 @@ func (s *Store) Close() error {
 	return nil
 }
 
+// AddURLBatch добавляет добавляет пачку урлов.
 func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error) {
 	var result []models.ResponseBatch
 	s.mu.Lock()
@@ -144,6 +150,8 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 
 	return result, nil
 }
+
+// GetUserURLs получает урлы пользователя.
 func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	result := []models.UserURL{}
 	userID, ok := ctx.Value(auth.NameCookie).(string)
@@ -166,6 +174,7 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	return result, nil
 }
 
+// DeleteUserURLs удаляет  урлы пользователя.
 func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser) error {
 
 	for _, v := range data {

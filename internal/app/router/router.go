@@ -1,13 +1,13 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	middleware2 "github.com/carinfinin/shortener-url/internal/app/middleware"
 	"github.com/carinfinin/shortener-url/internal/app/models"
-	"github.com/carinfinin/shortener-url/internal/app/service"
 	"github.com/carinfinin/shortener-url/internal/app/storage"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
 	"github.com/go-chi/chi/v5"
@@ -16,14 +16,28 @@ import (
 	"strings"
 )
 
-type Router struct {
-	Handle  *chi.Mux
-	URL     string
-	Config  *config.Config
-	Service *service.Service
+// Service сервисный слой реализует бизнес логику.
+//
+//go:generate go run github.com/vektra/mockery/v2@v2.52.2 --name=Service --filename=servicemock_test.go --inpackage
+type Service interface {
+	CreateURL(ctx context.Context, url string) (string, error)
+	GetURL(ctx context.Context, id string) (string, error)
+	JSONHandleBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
+	PingDB(ctx context.Context) error
+	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
+	DeleteUserURLs(ctx context.Context, data []string) error
 }
 
-func ConfigureRouter(s *service.Service, config *config.Config) *Router {
+// Router represents the HTTP router application
+type Router struct {
+	Handle  *chi.Mux       // chi router for handling HTTP requests
+	URL     string         // router base URL
+	Config  *config.Config // application configuration
+	Service Service        // service layer with business logic
+}
+
+// ConfigureRouter constructor for type Router accepts *service.Service *config.Config.
+func ConfigureRouter(s Service, config *config.Config) *Router {
 
 	r := Router{
 		Handle:  chi.NewRouter(),
@@ -48,10 +62,20 @@ func ConfigureRouter(s *service.Service, config *config.Config) *Router {
 	return &r
 }
 
+// CreateURL creates a new url.
+//
+// Accepts POST request in text/plain:
+// https://practicum.yandex.ru/learn/go-advanced/courses/
+//
+// Possible response codes:
+// - 201 Created - record successfully created
+// - 400 Bad Request - invalid request format
+// - 409 Conflict - URL already exists
+// - 500 Internal Server Error - server error
 func (r *Router) CreateURL(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
+		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer req.Body.Close()
@@ -78,6 +102,12 @@ func (r *Router) CreateURL(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte(newURL))
 }
 
+// GetURL receiving url.
+//
+// Possible response codes:
+// - 400 Bad Request - invalid request format
+// - 410 url deleted
+// - 307 redirect
 func (r *Router) GetURL(res http.ResponseWriter, req *http.Request) {
 
 	path := strings.Trim(req.URL.Path, "/")
@@ -107,6 +137,23 @@ func (r *Router) GetURL(res http.ResponseWriter, req *http.Request) {
 	http.Redirect(res, req, url, http.StatusTemporaryRedirect)
 }
 
+// JSONHandle processes a JSON request to create a new record.
+//
+// Accepts a POST request with a JSON body in the format:
+// {
+// "url": "string" // URL to process
+// }
+//
+// Possible response codes:
+// - 201 Created - the record was successfully created
+// - 400 Bad Request - invalid request format
+// - 409 Conflict - the URL already exists
+// - 500 Internal Server Error - server error
+//
+// If successful, returns a JSON response:
+// {
+// "result": "string" // Generated URL with XML ID
+// }
 func (r *Router) JSONHandle(writer http.ResponseWriter, request *http.Request) {
 	logger.Log.Info("start handle JSON")
 
@@ -119,7 +166,7 @@ func (r *Router) JSONHandle(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	xmlID, err := r.Service.JSONHandle(request.Context(), req.URL)
+	xmlID, err := r.Service.CreateURL(request.Context(), req.URL)
 	if err != nil && len(xmlID) == 0 {
 		logger.Log.Error("JSONHandle", err)
 		http.Error(writer, "error add url", http.StatusInternalServerError)
@@ -146,6 +193,19 @@ func (r *Router) JSONHandle(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 }
+
+// JSONHandleBatch processes a JSON request to create multiple new records.
+//
+// Accepts a POST request with a JSON body in the format:
+// [{
+// "correlation_id": "string"
+// "original_url": "string"
+// }]
+//
+// Possible response codes:
+// - 201 Created - the record was successfully created
+// - 400 Bad Request - invalid request format
+// - 500 Internal Server Error - server error
 func (r *Router) JSONHandleBatch(writer http.ResponseWriter, request *http.Request) {
 	logger.Log.Info("start handle JSONHandleBatch")
 
@@ -180,6 +240,7 @@ func (r *Router) JSONHandleBatch(writer http.ResponseWriter, request *http.Reque
 
 }
 
+// PingDB метод для проверки доступности хранилица.
 func (r *Router) PingDB(writer http.ResponseWriter, request *http.Request) {
 	logger.Log.Info("PingDB handler start")
 
@@ -194,6 +255,19 @@ func (r *Router) PingDB(writer http.ResponseWriter, request *http.Request) {
 
 }
 
+// GetUserURLs receives user generated URLs.
+//
+// Possible response codes:
+// - 200 Success
+// - 204 No content
+// - 400 Bad Request - invalid request format
+// - 500 Internal Server Error - server error
+//
+// If successful, returns a JSON response:
+// [{
+// "short_url": "string"
+// "original_url": "string"
+// }]
 func (r *Router) GetUserURLs(writer http.ResponseWriter, request *http.Request) {
 	logger.Log.Info("GetUserURLs handler start")
 
@@ -219,6 +293,14 @@ func (r *Router) GetUserURLs(writer http.ResponseWriter, request *http.Request) 
 	}
 }
 
+// DeleteUserURLs processes a JSON request to delete records.
+//
+// Accepts a POST request with a JSON body in the format:
+// ["short_url", "short_url_2"]
+//
+// Possible response codes:
+// - 202 Accepted
+// - 400 Bad Request - invalid request format
 func (r *Router) DeleteUserURLs(writer http.ResponseWriter, request *http.Request) {
 	logger.Log.Info("DeleteUserURLs handler start")
 
