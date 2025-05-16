@@ -32,7 +32,8 @@ jobs:
         run: |
           go vet -vettool=$(which statictest) ./...
 
-      - name: Run Staticlint
-        continue-on-error: true
-        run: |
-          go run -buildvcs=false  cmd/staticlint/main.go ./...
+      - name: Install custom linter
+        run: GOFLAGS=-buildvcs=false go build -buildvcs=false -o mylint ./cmd/staticlint
+
+      - name: Run custom linter
+        run: GOFLAGS=-buildvcs=false ./mylint ./internal/... ./cmd/...
