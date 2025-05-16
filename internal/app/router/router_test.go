@@ -193,6 +193,55 @@ func TestJSONHandle(t *testing.T) {
 	}
 }
 
+func TestRouter_User(t *testing.T) {
+	//JSONHandleBatch
+	//GetUserURLs
+	//DeleteUserURLs
+	var url = "http://localhost:8080"
+	js := []byte(`[{"correlation_id": "123", "original_url": "practicum.ru"}]`)
+
+	buf := bytes.NewBuffer(js)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", buf)
+	w := httptest.NewRecorder()
+	cfg := config.Config{URL: url}
+
+	s, err := store.New(&cfg)
+	require.NoError(t, err)
+
+	token := auth.GenerateToken()
+	ctx := context.WithValue(request.Context(), auth.NameCookie, token)
+	newReq := request.WithContext(ctx)
+	ss := service.New(s, &cfg)
+	r := ConfigureRouter(ss, &cfg)
+	r.JSONHandleBatch(w, newReq)
+	result := w.Result()
+
+	fmt.Println(result.StatusCode)
+	assert.Equal(t, 201, result.StatusCode)
+
+	// get urls user
+	request = httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
+	newReq = request.WithContext(ctx)
+	w = httptest.NewRecorder()
+	r.GetUserURLs(w, newReq)
+	result = w.Result()
+	fmt.Println(result.StatusCode)
+	assert.Equal(t, 200, result.StatusCode)
+
+	// delete
+	js = []byte(`["123"]`)
+	buf = bytes.NewBuffer(js)
+	request = httptest.NewRequest(http.MethodDelete, "/api/user/urls", buf)
+	newReq = request.WithContext(ctx)
+	w = httptest.NewRecorder()
+	r.DeleteUserURLs(w, newReq)
+	result = w.Result()
+	fmt.Println(result.StatusCode)
+	assert.Equal(t, 202, result.StatusCode)
+
+}
+
 func BenchmarkRouter_CreateURL(b *testing.B) {
 
 	body := strings.NewReader("https://yandex.ru")
