@@ -1,4 +1,4 @@
-package qw
+package main
 
 import "os"
 
