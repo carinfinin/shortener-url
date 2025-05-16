@@ -219,6 +219,8 @@ func TestRouter_User(t *testing.T) {
 
 	fmt.Println(result.StatusCode)
 	assert.Equal(t, 201, result.StatusCode)
+	err = result.Body.Close()
+	assert.NoError(t, err)
 
 	// get urls user
 	request = httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
@@ -228,6 +230,8 @@ func TestRouter_User(t *testing.T) {
 	result = w.Result()
 	fmt.Println(result.StatusCode)
 	assert.Equal(t, 200, result.StatusCode)
+	err = result.Body.Close()
+	assert.NoError(t, err)
 
 	// delete
 	js = []byte(`["123"]`)
@@ -240,6 +244,8 @@ func TestRouter_User(t *testing.T) {
 	fmt.Println(result.StatusCode)
 	assert.Equal(t, 202, result.StatusCode)
 
+	err = result.Body.Close()
+	assert.NoError(t, err)
 }
 
 func BenchmarkRouter_CreateURL(b *testing.B) {
