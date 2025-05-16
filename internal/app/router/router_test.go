@@ -194,9 +194,7 @@ func TestJSONHandle(t *testing.T) {
 }
 
 func TestRouter_User(t *testing.T) {
-	//JSONHandleBatch
-	//GetUserURLs
-	//DeleteUserURLs
+
 	var url = "http://localhost:8080"
 	js := []byte(`[{"correlation_id": "123", "original_url": "practicum.ru"}]`)
 
