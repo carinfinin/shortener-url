@@ -26,51 +26,44 @@ func TestCreateURL(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		request string
+		data    string
 		want    want
-		url     string
+		baseURL string
+		wantErr bool
 	}{
 		{
-			name: "simple test #1",
+			name: "successful creation",
+			data: "https://yandex.ru",
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
 			},
-			url:     "http://localhost:8080",
-			request: "/",
+			baseURL: "http://localhost:8080",
+			wantErr: false,
 		},
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
 
-			request := httptest.NewRequest(http.MethodPost, test.request, strings.NewReader("https://yandex.ru"))
-
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.data))
 			token := auth.GenerateToken()
-			ctx := context.WithValue(request.Context(), auth.NameCookie, token)
-			newReq := request.WithContext(ctx)
+			ctx := context.WithValue(req.Context(), auth.NameCookie, token)
+			req = req.WithContext(ctx)
 
-			cfg := config.Config{URL: test.url}
+			cfg := config.Config{URL: tt.baseURL}
 			s, err := store.New(&cfg)
 			require.NoError(t, err)
-			service := service.New(s, &cfg)
-			r := ConfigureRouter(service, &cfg)
+			srv := service.New(s, &cfg)
+			handler := ConfigureRouter(srv, &cfg)
+
 			w := httptest.NewRecorder()
+			handler.CreateURL(w, req)
+			resp := w.Result()
+			resp.Body.Close()
 
-			r.CreateURL(w, newReq)
+			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
+			assert.Equal(t, tt.want.contentType, resp.Header.Get("Content-Type"))
 
-			result := w.Result()
-
-			assert.Equal(t, test.want.statusCode, result.StatusCode)
-			assert.Equal(t, test.want.contentType, result.Header.Get("Content-Type"))
-
-			newURL, err := io.ReadAll(result.Body)
-			require.NoError(t, err)
-			err = result.Body.Close()
-			require.NoError(t, err)
-
-			assert.NotNil(t, newURL)
-
-			fmt.Println("test create URL")
 		})
 	}
 }
