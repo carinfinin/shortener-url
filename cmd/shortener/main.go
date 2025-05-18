@@ -40,16 +40,16 @@ func main() {
 	exit := make(chan os.Signal, 1)
 	signal.Notify(exit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-	config := config.New()
+	cfg := config.New()
 
-	err := logger.Configure(config.LogLevel)
+	err := logger.Configure(cfg.LogLevel)
 	if err != nil {
 		panic(err)
 	}
 
 	logger.Log.Info("server starting")
 
-	s, err := server.New(config)
+	s, err := server.New(cfg)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)

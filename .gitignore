@@ -27,3 +27,4 @@ postgres/
 data.json
 coverage
 profiles/
+*.pem
