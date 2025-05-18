@@ -9,7 +9,7 @@ on:
 jobs:
   statictest:
     runs-on: ubuntu-latest
-    container: golang:1.22
+    container: golang:1.24
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -31,3 +31,9 @@ jobs:
       - name: Run statictest
         run: |
           go vet -vettool=$(which statictest) ./...
+
+      - name: Install custom linter
+        run: GOFLAGS=-buildvcs=false go build -buildvcs=false -o mylint ./cmd/staticlint
+
+      - name: Run custom linter
+        run: GOFLAGS=-buildvcs=false ./mylint ./internal/... ./cmd/...

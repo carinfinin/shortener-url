@@ -26,51 +26,44 @@ func TestCreateURL(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		request string
+		data    string
 		want    want
-		url     string
+		baseURL string
+		wantErr bool
 	}{
 		{
-			name: "simple test #1",
+			name: "successful creation",
+			data: "https://yandex.ru",
 			want: want{
 				contentType: "text/plain",
 				statusCode:  201,
 			},
-			url:     "http://localhost:8080",
-			request: "/",
+			baseURL: "http://localhost:8080",
+			wantErr: false,
 		},
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
 
-			request := httptest.NewRequest(http.MethodPost, test.request, strings.NewReader("https://yandex.ru"))
-
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.data))
 			token := auth.GenerateToken()
-			ctx := context.WithValue(request.Context(), auth.NameCookie, token)
-			newReq := request.WithContext(ctx)
+			ctx := context.WithValue(req.Context(), auth.NameCookie, token)
+			req = req.WithContext(ctx)
 
-			cfg := config.Config{URL: test.url}
+			cfg := config.Config{URL: tt.baseURL}
 			s, err := store.New(&cfg)
 			require.NoError(t, err)
-			service := service.New(s, &cfg)
-			r := ConfigureRouter(service, &cfg)
+			srv := service.New(s, &cfg)
+			handler := ConfigureRouter(srv, &cfg)
+
 			w := httptest.NewRecorder()
+			handler.CreateURL(w, req)
+			resp := w.Result()
+			resp.Body.Close()
 
-			r.CreateURL(w, newReq)
+			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
+			assert.Equal(t, tt.want.contentType, resp.Header.Get("Content-Type"))
 
-			result := w.Result()
-
-			assert.Equal(t, test.want.statusCode, result.StatusCode)
-			assert.Equal(t, test.want.contentType, result.Header.Get("Content-Type"))
-
-			newURL, err := io.ReadAll(result.Body)
-			require.NoError(t, err)
-			err = result.Body.Close()
-			require.NoError(t, err)
-
-			assert.NotNil(t, newURL)
-
-			fmt.Println("test create URL")
 		})
 	}
 }
@@ -191,4 +184,103 @@ func TestJSONHandle(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
+}
+
+func TestRouter_User(t *testing.T) {
+
+	var url = "http://localhost:8080"
+	js := []byte(`[{"correlation_id": "123", "original_url": "practicum.ru"}]`)
+
+	buf := bytes.NewBuffer(js)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", buf)
+	w := httptest.NewRecorder()
+	cfg := config.Config{URL: url}
+
+	s, err := store.New(&cfg)
+	require.NoError(t, err)
+
+	token := auth.GenerateToken()
+	ctx := context.WithValue(request.Context(), auth.NameCookie, token)
+	newReq := request.WithContext(ctx)
+	ss := service.New(s, &cfg)
+	r := ConfigureRouter(ss, &cfg)
+	r.JSONHandleBatch(w, newReq)
+	result := w.Result()
+
+	fmt.Println(result.StatusCode)
+	assert.Equal(t, 201, result.StatusCode)
+	err = result.Body.Close()
+	assert.NoError(t, err)
+
+	// get urls user
+	request = httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
+	newReq = request.WithContext(ctx)
+	w = httptest.NewRecorder()
+	r.GetUserURLs(w, newReq)
+	result = w.Result()
+	fmt.Println(result.StatusCode)
+	assert.Equal(t, 200, result.StatusCode)
+	err = result.Body.Close()
+	assert.NoError(t, err)
+
+	// delete
+	js = []byte(`["123"]`)
+	buf = bytes.NewBuffer(js)
+	request = httptest.NewRequest(http.MethodDelete, "/api/user/urls", buf)
+	newReq = request.WithContext(ctx)
+	w = httptest.NewRecorder()
+	r.DeleteUserURLs(w, newReq)
+	result = w.Result()
+	fmt.Println(result.StatusCode)
+	assert.Equal(t, 202, result.StatusCode)
+
+	err = result.Body.Close()
+	assert.NoError(t, err)
+}
+
+func BenchmarkRouter_CreateURL(b *testing.B) {
+
+	body := strings.NewReader("https://yandex.ru")
+	request := httptest.NewRequest(http.MethodPost, "/", body)
+
+	token := auth.GenerateToken()
+	ctx := context.WithValue(request.Context(), auth.NameCookie, token)
+	newReq := request.WithContext(ctx)
+
+	cfg := config.Config{URL: "http://localhost:8080"}
+	s, _ := store.New(&cfg)
+
+	service := service.New(s, &cfg)
+	r := ConfigureRouter(service, &cfg)
+	w := httptest.NewRecorder()
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		body.Seek(0, 0)
+		r.CreateURL(w, newReq)
+	}
+
+}
+
+func BenchmarkRouter_GetURL(b *testing.B) {
+
+	cfg := config.Config{URL: "http://localhost:8080"}
+
+	s, _ := store.New(&cfg)
+	token := auth.GenerateToken()
+	ctx := context.WithValue(context.Background(), auth.NameCookie, token)
+
+	xmlID, _ := s.AddURL(ctx, "https://www.google.com")
+
+	request := httptest.NewRequest(http.MethodGet, "/"+xmlID, nil)
+	service := service.New(s, &cfg)
+	r := ConfigureRouter(service, &cfg)
+	w := httptest.NewRecorder()
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		r.GetURL(w, request)
+	}
+
 }

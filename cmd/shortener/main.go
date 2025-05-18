@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
@@ -9,6 +10,30 @@ import (
 	"os/signal"
 	"syscall"
 )
+
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
+func printGlobalVar() {
+
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	fmt.Printf("Build version: %s\n", buildVersion)
+
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	fmt.Printf("Build date: %s\n", buildDate)
+
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	fmt.Printf("Build commit: %s\n", buildCommit)
+}
 
 func main() {
 
@@ -21,6 +46,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	logger.Log.Info("server starting")
 
 	s, err := server.New(config)
@@ -34,6 +60,8 @@ func main() {
 			logger.Log.Info("server failed")
 		}
 	}()
+
+	printGlobalVar()
 
 	logger.Log.Info("server started")
 

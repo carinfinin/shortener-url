@@ -15,11 +15,13 @@ import (
 	"time"
 )
 
+// Store sql хранилище реализует интерфейс Repository.
 type Store struct {
 	db  *sql.DB
 	url string
 }
 
+// New конструктор для  Store.
 func New(cfg *config.Config) (*Store, error) {
 
 	db, err := sql.Open("pgx", cfg.DBPath)
@@ -32,6 +34,7 @@ func New(cfg *config.Config) (*Store, error) {
 	}, nil
 }
 
+// Ping проверяет достуаность хранилища
 func Ping(ps string) error {
 
 	db, err := sql.Open("pgx", ps)
@@ -48,6 +51,7 @@ func Ping(ps string) error {
 	return nil
 }
 
+// AddURL записывает в хранилище урл.
 func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	logger.Log.Info("start function AddURL")
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
@@ -78,7 +82,8 @@ func (s *Store) AddURL(ctx context.Context, url string) (string, error) {
 	return ID, nil
 }
 
-func (s *Store) GetURL(ctx context.Context, ID string) (string, error) {
+// GetURL получает из хранилища урл.
+func (s *Store) GetURL(ctx context.Context, id string) (string, error) {
 	logger.Log.Info("start function GetURL")
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -86,7 +91,7 @@ func (s *Store) GetURL(ctx context.Context, ID string) (string, error) {
 	var URL string
 	var deleted bool
 
-	row := s.db.QueryRowContext(ctx, "SELECT url, is_deleted FROM urls WHERE xmlid = $1", ID)
+	row := s.db.QueryRowContext(ctx, "SELECT url, is_deleted FROM urls WHERE xmlid = $1", id)
 	err := row.Scan(&URL, &deleted)
 	if err != nil {
 		logger.Log.Error("GetURL scan error", err)
@@ -105,10 +110,12 @@ func (s *Store) GetURL(ctx context.Context, ID string) (string, error) {
 	return URL, nil
 }
 
+// Close закрывает хранилище.
 func (s *Store) Close() error {
 	return s.db.Close()
 }
 
+// CreateTableForDB создаёт необходимые таблицы.
 func (s *Store) CreateTableForDB(ctx context.Context) error {
 	logger.Log.Info("start CreateTableForDB")
 	result, err := s.db.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS urls ("+
@@ -125,6 +132,8 @@ func (s *Store) CreateTableForDB(ctx context.Context) error {
 
 	return nil
 }
+
+// AddURLBatch добавляет добавляет пачку урлов.
 func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error) {
 
 	var result []models.ResponseBatch
@@ -164,6 +173,7 @@ func (s *Store) AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]
 	return result, nil
 }
 
+// GetUserURLs получает урлы пользователя.
 func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 
 	result := []models.UserURL{}
@@ -194,6 +204,7 @@ func (s *Store) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	return result, nil
 }
 
+// DeleteUserURLs удаляет  урлы пользователя.
 func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser) error {
 
 	tx, err := s.db.Begin()
@@ -211,7 +222,7 @@ func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser)
 	defer stmt.Close()
 
 	for _, v := range data {
-		_, err := stmt.ExecContext(ctx, v.Data, v.USerID)
+		_, err = stmt.ExecContext(ctx, v.Data, v.USerID)
 		if err != nil {
 			logger.Log.Debug("tx.ExecContext", err)
 
