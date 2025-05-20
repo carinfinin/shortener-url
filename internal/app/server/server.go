@@ -67,6 +67,7 @@ func New(config *config.Config) (*Server, error) {
 	return &server, nil
 }
 
+// Stop останавливает server
 func (s *Server) Stop(ctx context.Context) error {
 	return s.Shutdown(ctx)
 }
