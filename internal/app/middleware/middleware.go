@@ -19,16 +19,20 @@ type (
 	}
 )
 
+// Write записывает в loggingResponseWriter размер ответа.
 func (r *loggingResponseWriter) Write(data []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(data)
 	r.responseData.size = size
 	return size, err
 }
+
+// WriteHeader записывает в loggingResponseWriter код отевета.
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
 }
 
+// RequestLogger записывает в лог урл, метод, и время выполенния метода.
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		start := time.Now()
@@ -39,10 +43,10 @@ func RequestLogger(next http.Handler) http.Handler {
 			"method": request.Method,
 			"time":   time.Since(start),
 		}).Info("got incoming HTTP request")
-
 	})
 }
 
+// ResponseLogger записывает в лог статус и размер ответа
 func ResponseLogger(next http.Handler) http.Handler {
 	fn := func(writer http.ResponseWriter, request *http.Request) {
 

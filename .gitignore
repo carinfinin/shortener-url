@@ -3,6 +3,7 @@
 *.exe~
 *.dll
 *.so
+*.pem
 *.dylib
 
 # Test binary, built with `go test -c`
@@ -24,3 +25,5 @@ vendor/
 
 postgres/
 data.json
+coverage
+profiles/

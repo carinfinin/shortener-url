@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// CompressGzipWriter compresses and write data in gzip format.
 func CompressGzipWriter(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 
@@ -26,6 +27,7 @@ func CompressGzipWriter(h http.Handler) http.Handler {
 	})
 }
 
+// CompressGzipReader reads compressed data.
 func CompressGzipReader(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if strings.Contains(request.Header.Get("Content-Encoding"), "gzip") {
