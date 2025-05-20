@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
@@ -37,8 +38,8 @@ func printGlobalVar() {
 
 func main() {
 
-	exit := make(chan os.Signal, 1)
-	signal.Notify(exit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
 
 	cfg := config.New()
 
@@ -65,7 +66,8 @@ func main() {
 
 	logger.Log.Info("server started")
 
-	<-exit
+	<-ctx.Done()
+	s.Stop(ctx)
 	s.Store.Close()
 	logger.Log.Info("stopping server")
 

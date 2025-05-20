@@ -24,9 +24,8 @@ import (
 
 // Server заускает сервер и содержит ссылку на хранилище.
 type Server struct {
-	Addr   string
+	http.Server
 	Store  service.Repository
-	Router *router.Router
 	config *config.Config
 }
 
@@ -62,19 +61,23 @@ func New(config *config.Config) (*Server, error) {
 	server.Addr = config.Addr
 	s := service.New(server.Store, config)
 
-	server.Router = router.ConfigureRouter(s, config)
+	server.Handler = router.ConfigureRouter(s, config).Handle
 	server.config = config
 
 	return &server, nil
+}
+
+func (s *Server) Stop(ctx context.Context) error {
+	return s.Shutdown(ctx)
 }
 
 // Start запускает сервер.
 func (s *Server) Start() error {
 	if s.config.TLS {
 		generateTLS()
-		return http.ListenAndServeTLS(":443", "cert.pem", "key.pem", s.Router.Handle)
+		return s.ListenAndServeTLS("cert.pem", "key.pem")
 	}
-	return http.ListenAndServe(s.Addr, s.Router.Handle)
+	return s.ListenAndServe()
 }
 
 // generateTLS
