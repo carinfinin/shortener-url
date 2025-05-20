@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"os"
 )
@@ -104,15 +103,13 @@ func readConfigJSON(fname string, cfg *Config) error {
 			}
 		}
 	}
-	if cfg.TLS {
+	if !cfg.TLS {
 		if v, ok := j["enable_https"]; ok {
 			if val, ok := v.(bool); ok {
 				cfg.TLS = val
 			}
-			cfg.TLS = v == "true"
 		}
 	}
 
-	fmt.Println(j)
 	return nil
 }
