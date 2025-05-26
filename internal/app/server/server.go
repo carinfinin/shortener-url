@@ -14,6 +14,7 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/storage/store"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storefile"
 	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
+	"golang.org/x/crypto/acme/autocert"
 	"log"
 	"math/big"
 	"net"
@@ -75,8 +76,17 @@ func (s *Server) Stop(ctx context.Context) error {
 // Start запускает сервер.
 func (s *Server) Start() error {
 	if s.config.TLS {
-		generateTLS()
-		return s.ListenAndServeTLS("cert.pem", "key.pem")
+
+		m := &autocert.Manager{
+			Cache:      autocert.DirCache("secret-dir"),
+			Prompt:     autocert.AcceptTOS,
+			Email:      "example@example.org",
+			HostPolicy: autocert.HostWhitelist("localhost:8080"),
+		}
+		//s.Addr = ":https"
+		s.TLSConfig = m.TLSConfig()
+
+		return s.ListenAndServeTLS("", "")
 	}
 	return s.ListenAndServe()
 }

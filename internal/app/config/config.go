@@ -9,13 +9,13 @@ import (
 
 // Config contains application settings.
 type Config struct {
-	Addr     string
-	URL      string
-	LogLevel string
-	FilePath string
-	DBPath   string
-	TLS      bool
-	path     string
+	Addr     string `json:"server_address"`
+	URL      string `json:"base_url"`
+	LogLevel string `json:"-"`
+	FilePath string `json:"file_storage_path"`
+	DBPath   string `json:"database_dsn"`
+	TLS      bool   `json:"enable_https"`
+	path     string `json:"-"`
 }
 
 // New constructor for type Config.
@@ -69,46 +69,26 @@ func readConfigJSON(fname string, cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	j := make(map[string]any, 0)
-	err = json.Unmarshal(b, &j)
+	var cNew Config
+	err = json.Unmarshal(b, &cNew)
 	if err != nil {
 		return err
 	}
 
 	if cfg.Addr == "" {
-		if v, ok := j["server_address"]; ok {
-			if val, ok := v.(string); ok {
-				cfg.Addr = val
-			}
-		}
+		cfg.Addr = cNew.Addr
 	}
 	if cfg.URL == "" {
-		if v, ok := j["base_url"]; ok {
-			if val, ok := v.(string); ok {
-				cfg.URL = val
-			}
-		}
+		cfg.URL = cNew.URL
 	}
 	if cfg.FilePath == "" {
-		if v, ok := j["file_storage_path"]; ok {
-			if val, ok := v.(string); ok {
-				cfg.FilePath = val
-			}
-		}
+		cfg.FilePath = cNew.FilePath
 	}
 	if cfg.DBPath == "" {
-		if v, ok := j["database_dsn"]; ok {
-			if val, ok := v.(string); ok {
-				cfg.DBPath = val
-			}
-		}
+		cfg.DBPath = cNew.DBPath
 	}
 	if !cfg.TLS {
-		if v, ok := j["enable_https"]; ok {
-			if val, ok := v.(bool); ok {
-				cfg.TLS = val
-			}
-		}
+		cfg.TLS = cNew.TLS
 	}
 
 	return nil

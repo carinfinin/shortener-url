@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var (
@@ -67,8 +68,13 @@ func main() {
 	logger.Log.Info("server started")
 
 	<-ctx.Done()
-	s.Stop(ctx)
-	s.Store.Close()
+	shutdownCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	if err = s.Stop(shutdownCtx); err != nil {
+		logger.Log.Error("error stop server: ", err)
+	}
+	if err = s.Store.Close(); err != nil {
+		logger.Log.Error("error stop store: ", err)
+	}
 	logger.Log.Info("stopping server")
-
 }
