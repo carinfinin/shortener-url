@@ -57,10 +57,8 @@ func (_m *MockRepository) AddURLBatch(ctx context.Context, data []models.Request
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, []models.RequestBatch) []models.ResponseBatch); ok {
 		r0 = rf(ctx, data)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]models.ResponseBatch)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]models.ResponseBatch)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, []models.RequestBatch) error); ok {
@@ -151,10 +149,8 @@ func (_m *MockRepository) GetUserURLs(ctx context.Context) ([]models.UserURL, er
 	}
 	if rf, ok := ret.Get(0).(func(context.Context) []models.UserURL); ok {
 		r0 = rf(ctx)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]models.UserURL)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]models.UserURL)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
@@ -181,10 +177,8 @@ func (_m *MockRepository) Stat(ctx context.Context) (*models.Stat, error) {
 	}
 	if rf, ok := ret.Get(0).(func(context.Context) *models.Stat); ok {
 		r0 = rf(ctx)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*models.Stat)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*models.Stat)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
