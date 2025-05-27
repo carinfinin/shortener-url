@@ -81,9 +81,8 @@ func (s *Server) Start() error {
 			Cache:      autocert.DirCache("secret-dir"),
 			Prompt:     autocert.AcceptTOS,
 			Email:      "example@example.org",
-			HostPolicy: autocert.HostWhitelist("localhost:8080"),
+			HostPolicy: autocert.HostWhitelist(s.config.Addr),
 		}
-		//s.Addr = ":https"
 		s.TLSConfig = m.TLSConfig()
 
 		return s.ListenAndServeTLS("", "")
