@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
 	"github.com/carinfinin/shortener-url/internal/app/router"
 	"github.com/carinfinin/shortener-url/internal/app/service"
@@ -64,6 +65,8 @@ func New(config *config.Config) (*Server, error) {
 
 	server.Handler = router.ConfigureRouter(s, config).Handle
 	server.config = config
+
+	fmt.Println(config)
 
 	return &server, nil
 }

@@ -159,3 +159,20 @@ func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser)
 	}
 	return nil
 }
+
+// Stat получение общей статистики
+func (s *Store) Stat(ctx context.Context) (*models.Stat, error) {
+	var stat models.Stat
+	users := make(map[string]string, 0)
+
+	for _, v := range s.store {
+		if !v.IsDeleted {
+			stat.URLs++
+		}
+		users[v.UserID] = v.UserID
+	}
+
+	stat.Users = len(users)
+
+	return &stat, nil
+}

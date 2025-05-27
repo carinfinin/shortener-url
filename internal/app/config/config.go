@@ -9,13 +9,14 @@ import (
 
 // Config contains application settings.
 type Config struct {
-	Addr     string `json:"server_address"`
-	URL      string `json:"base_url"`
-	LogLevel string `json:"-"`
-	FilePath string `json:"file_storage_path"`
-	DBPath   string `json:"database_dsn"`
-	TLS      bool   `json:"enable_https"`
-	path     string `json:"-"`
+	Addr          string `json:"server_address"`
+	URL           string `json:"base_url"`
+	LogLevel      string `json:"-"`
+	FilePath      string `json:"file_storage_path"`
+	DBPath        string `json:"database_dsn"`
+	TLS           bool   `json:"enable_https"`
+	path          string `json:"-"`
+	TrustedSubnet string `json:"trusted_subnet"`
 }
 
 // New constructor for type Config.
@@ -32,6 +33,7 @@ func New() *Config {
 	flag.BoolVar(&config.TLS, "s", false, "tls")
 	flag.StringVar(&config.path, "config", "", "config file path")
 	flag.StringVar(&config.path, "c", "", "config file path")
+	flag.StringVar(&config.TrustedSubnet, "t", "", "Trusted subnet  CIDR")
 	flag.Parse()
 
 	if envServerAddr := os.Getenv("SERVER_ADDRESS"); envServerAddr != "" {
@@ -51,7 +53,9 @@ func New() *Config {
 	}
 	if path := os.Getenv("CONFIG"); path != "" {
 		config.path = path
-
+	}
+	if subnet := os.Getenv("TRUSTED_SUBNET"); subnet != "" {
+		config.TrustedSubnet = subnet
 	}
 
 	if config.path != "" {
@@ -89,6 +93,9 @@ func readConfigJSON(fname string, cfg *Config) error {
 	}
 	if !cfg.TLS {
 		cfg.TLS = cNew.TLS
+	}
+	if cfg.TrustedSubnet == "" {
+		cfg.TrustedSubnet = cNew.TrustedSubnet
 	}
 
 	return nil
