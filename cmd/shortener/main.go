@@ -74,7 +74,7 @@ func main() {
 		logger.Log.Error("error stop server: ", err)
 	}
 	// закрытие воркеров в сервисе
-	s.Service.Close()
+	//s.Service.Close()
 
 	if err = s.Store.Close(); err != nil {
 		logger.Log.Error("error stop store: ", err)
