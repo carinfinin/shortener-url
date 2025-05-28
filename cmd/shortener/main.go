@@ -58,8 +58,8 @@ func main() {
 	}
 
 	go func() {
-		if err = s.Start(); err != nil {
-			logger.Log.Info("server failed")
+		if er := s.Start(); er != nil {
+			logger.Log.Fatal("server failed error: ", er)
 		}
 	}()
 
