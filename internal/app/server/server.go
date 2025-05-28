@@ -26,8 +26,9 @@ import (
 // Server заускает сервер и содержит ссылку на хранилище.
 type Server struct {
 	http.Server
-	Store  service.Repository
-	config *config.Config
+	Store   service.Repository
+	Service *service.Service
+	config  *config.Config
 }
 
 // New конструктор для Server принимает кофиг.
@@ -62,6 +63,7 @@ func New(config *config.Config) (*Server, error) {
 	server.Addr = config.Addr
 	s := service.New(server.Store, config)
 
+	server.Service = s
 	server.Handler = router.ConfigureRouter(s, config).Handle
 	server.config = config
 
