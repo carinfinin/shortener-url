@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var (
@@ -37,27 +39,27 @@ func printGlobalVar() {
 
 func main() {
 
-	exit := make(chan os.Signal, 1)
-	signal.Notify(exit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
-	config := config.New()
+	cfg := config.New()
 
-	err := logger.Configure(config.LogLevel)
+	err := logger.Configure(cfg.LogLevel)
 	if err != nil {
 		panic(err)
 	}
 
 	logger.Log.Info("server starting")
 
-	s, err := server.New(config)
+	s, err := server.New(cfg)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
 
 	go func() {
-		if err := s.Start(); err != nil {
-			logger.Log.Info("server failed")
+		if er := s.Start(); er != nil {
+			logger.Log.Error("server failed error: ", er)
 		}
 	}()
 
@@ -65,8 +67,17 @@ func main() {
 
 	logger.Log.Info("server started")
 
-	<-exit
-	s.Store.Close()
-	logger.Log.Info("stopping server")
+	<-ctx.Done()
+	shutdownCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	if err = s.Stop(shutdownCtx); err != nil {
+		logger.Log.Error("error stop server: ", err)
+	}
+	// закрытие воркеров в сервисе
+	s.Service.Close()
 
+	if err = s.Store.Close(); err != nil {
+		logger.Log.Error("error stop store: ", err)
+	}
+	logger.Log.Info("stopping server")
 }
