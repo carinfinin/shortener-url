@@ -76,16 +76,7 @@ func (s *Server) Stop(ctx context.Context) error {
 // Start запускает сервер.
 func (s *Server) Start() error {
 	if s.config.TLS {
-
-		m := &autocert.Manager{
-			Cache:      autocert.DirCache("secret-dir"),
-			Prompt:     autocert.AcceptTOS,
-			Email:      "example@example.org",
-			HostPolicy: autocert.HostWhitelist(s.config.Addr),
-		}
-		s.TLSConfig = m.TLSConfig()
-
-		return s.ListenAndServeTLS("", "")
+		return s.Serve(autocert.NewListener(s.config.Addr))
 	}
 	return s.ListenAndServe()
 }
