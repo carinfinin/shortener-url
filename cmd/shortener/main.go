@@ -58,8 +58,8 @@ func main() {
 	}
 
 	go func() {
-		if er := s.Start(); er != nil {
-			logger.Log.Fatal("server failed error: ", er)
+		if err = s.Start(); err != nil {
+			logger.Log.Info("server failed")
 		}
 	}()
 
@@ -73,9 +73,6 @@ func main() {
 	if err = s.Stop(shutdownCtx); err != nil {
 		logger.Log.Error("error stop server: ", err)
 	}
-	// закрытие воркеров в сервисе
-	//s.Service.Close()
-
 	if err = s.Store.Close(); err != nil {
 		logger.Log.Error("error stop store: ", err)
 	}
