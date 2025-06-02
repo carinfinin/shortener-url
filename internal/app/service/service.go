@@ -21,6 +21,7 @@ type Repository interface {
 	AddURLBatch(ctx context.Context, data []models.RequestBatch) ([]models.ResponseBatch, error)
 	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
 	DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser) error
+	Stat(ctx context.Context) (*models.Stat, error)
 	Close() error
 }
 
@@ -83,6 +84,11 @@ func (s *Service) GetUserURLs(ctx context.Context) ([]models.UserURL, error) {
 	logger.Log.Debug("GetUserURLs handler start")
 
 	return s.store.GetUserURLs(ctx)
+}
+
+// Stat статистика сервиса.
+func (s *Service) Stat(ctx context.Context) (*models.Stat, error) {
+	return s.store.Stat(ctx)
 }
 
 // DeleteUserURLs удаляет урлы пользователя.

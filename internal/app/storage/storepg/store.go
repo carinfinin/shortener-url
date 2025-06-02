@@ -231,3 +231,18 @@ func (s *Store) DeleteUserURLs(ctx context.Context, data []models.DeleteURLUser)
 	}
 	return tx.Commit()
 }
+
+// Stat получение общей статистики
+func (s *Store) Stat(ctx context.Context) (*models.Stat, error) {
+	var stat models.Stat
+	row := s.db.QueryRowContext(ctx, "SELECT COUNT(DISTINCT user_id) as user_count, COUNT(url) as url_count FROM urls WHERE is_deleted = FALSE")
+
+	err := row.Scan(&stat.Users, &stat.URLs)
+	if err != nil {
+		return nil, err
+	}
+	if err = row.Err(); err != nil {
+		return nil, err
+	}
+	return &stat, nil
+}
