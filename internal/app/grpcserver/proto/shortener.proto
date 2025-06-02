@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package grpcserver;
+
+option go_package = "grpcserver/proto";
+
+
+message UrlRequest {
+  string value = 1;
+}
+message UrlResponse {
+  string value = 1;
+}
+
+message UrlJsonRequest {
+  string id = 1;
+  string url = 2;
+}
+
+message UrlJsonResponse {
+  string id = 1;
+  string url = 2;
+}
+
+
+
+service Shortener {
+  rpc CreateURL(UrlRequest) returns (UrlResponse);
+  rpc JSONHandle(UrlJsonRequest) returns (UrlJsonResponse);
+}
