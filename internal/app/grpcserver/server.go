@@ -186,22 +186,23 @@ func (s *ShortenerServer) DeleteUserURLs(ctx context.Context, req *proto.UrlResp
 }
 
 // Start server grpc.
-func Start(cfg *config.Config) {
+func Start(cfg *config.Config) error {
 	listen, err := net.Listen("tcp", ":3200")
 	if err != nil {
-		logger.Log.Fatal(err)
+		return err
 	}
 	s := grpc.NewServer()
 
 	sShort, err := New(cfg)
 	if err != nil {
-		logger.Log.Fatal(err)
+		return err
 	}
 	proto.RegisterShortenerServer(s, sShort)
 
 	logger.Log.Info("Сервер grpc начал работу")
 
 	if err = s.Serve(listen); err != nil {
-		logger.Log.Fatal(err)
+		return err
 	}
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/carinfinin/shortener-url/internal/app/config"
+	"github.com/carinfinin/shortener-url/internal/app/grpcserver"
 	"github.com/carinfinin/shortener-url/internal/app/logger"
 	"github.com/carinfinin/shortener-url/internal/app/server"
 	"os"
@@ -53,9 +54,17 @@ func main() {
 
 	s, err := server.New(cfg)
 	if err != nil {
-		fmt.Println(err)
+		logger.Log.Error("server starting error:", err)
 		panic(err)
 	}
+
+	go func() {
+		err = grpcserver.Start(cfg)
+		if err != nil {
+			logger.Log.Error("grps server starting error:", err)
+			panic(err)
+		}
+	}()
 
 	go func() {
 		if er := s.Start(); er != nil {
