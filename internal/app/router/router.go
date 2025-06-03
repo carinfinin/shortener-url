@@ -12,6 +12,7 @@ import (
 	"github.com/carinfinin/shortener-url/internal/app/storage/storepg"
 	"github.com/go-chi/chi/v5"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 )
@@ -26,6 +27,7 @@ type Service interface {
 	PingDB(ctx context.Context) error
 	GetUserURLs(ctx context.Context) ([]models.UserURL, error)
 	DeleteUserURLs(ctx context.Context, data []string) error
+	Stat(ctx context.Context) (*models.Stat, error)
 }
 
 // Router represents the HTTP router application
@@ -57,6 +59,7 @@ func ConfigureRouter(s Service, config *config.Config) *Router {
 	r.Handle.Get("/ping", r.PingDB)
 	r.Handle.Get("/{id}", r.GetURL)
 	r.Handle.Get("/api/user/urls", r.GetUserURLs)
+	r.Handle.Get("/api/internal/stats", r.GetStats)
 	r.Handle.Delete("/api/user/urls", r.DeleteUserURLs)
 
 	return &r
@@ -232,7 +235,7 @@ func (r *Router) JSONHandleBatch(writer http.ResponseWriter, request *http.Reque
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusCreated)
 
-	if err := encoder.Encode(result); err != nil {
+	if err = encoder.Encode(result); err != nil {
 		logger.Log.Error("Encode error", err)
 		http.Error(writer, "bad request", http.StatusBadRequest)
 		return
@@ -317,4 +320,41 @@ func (r *Router) DeleteUserURLs(writer http.ResponseWriter, request *http.Reques
 
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusAccepted)
+}
+
+// GetStats получение статистики
+func (r *Router) GetStats(writer http.ResponseWriter, request *http.Request) {
+
+	if r.Config.TrustedSubnet == "" {
+		http.Error(writer, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	_, sbnet, err := net.ParseCIDR(r.Config.TrustedSubnet)
+	if err != nil {
+		logger.Log.Error("error parse subnet: ", err)
+		http.Error(writer, "", http.StatusInternalServerError)
+		return
+	}
+	ip := net.ParseIP(request.Header.Get("X-Real-IP"))
+
+	if !sbnet.Contains(ip) {
+		http.Error(writer, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	stat, err := r.Service.Stat(request.Context())
+	if err != nil {
+		http.Error(writer, "error get stats", http.StatusInternalServerError)
+		return
+	}
+
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+
+	encoder := json.NewEncoder(writer)
+	if err = encoder.Encode(stat); err != nil {
+		http.Error(writer, "error stats encode", http.StatusInternalServerError)
+		return
+	}
 }

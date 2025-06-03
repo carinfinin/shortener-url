@@ -10,10 +10,11 @@ type Response struct {
 	Result string `json:"result"`
 }
 
-// type Line struct {
-//	URL string `json:"url"`
-//	ID  string `json:"id"`
-//}
+// Stat структура для обработки json ответа.
+type Stat struct {
+	URLs  int `json:"urls"`
+	Users int `json:"users"`
+}
 
 // RequestBatch структупа для обработки запроса json.
 type RequestBatch struct {
